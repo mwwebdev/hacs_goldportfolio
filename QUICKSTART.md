@@ -82,6 +82,7 @@ gain_percent_entity: sensor.portfolio_total_gain_percent
 - Überprüfe den API Key auf Tippfehler
 - Stelle sicher, dass du bei goldapi.io registriert bist
 - Versuche, einen neuen API Key zu generieren
+- **[Detailliertes Debugging Guide](docs/TROUBLESHOOTING_API_KEY.md)** für weitere Hilfe
 
 ### Problem: "Sensoren zeigen 'unknown' an"
 **Lösung:**

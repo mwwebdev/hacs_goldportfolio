@@ -166,6 +166,9 @@ A: Ja, mit dem Service `get_historical_price` kannst du Preise für ein bestimmt
 **F: Sind meine Daten sicher?**
 A: Ja, dein API-Schlüssel wird nur lokal gespeichert und wird nie an Dritte übertragen.
 
+**F: Ich bekomme "invalid_api_key" Fehler?**
+A: Schaue dir die [API-Key Troubleshooting Anleitung](docs/TROUBLESHOOTING_API_KEY.md) an.
+
 ## Unterstützung
 
 Für Probleme oder Fragen bitte ein Issue auf GitHub erstellen:

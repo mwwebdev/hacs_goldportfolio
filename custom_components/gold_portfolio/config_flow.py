@@ -29,19 +29,41 @@ class GoldPortfolioConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             try:
                 # Validate API key
-                api_client = GoldAPIClient(user_input[CONF_API_KEY])
-                await api_client.get_gold_price()
+                api_key = user_input[CONF_API_KEY].strip()
+                
+                # Check if API key is empty
+                if not api_key:
+                    errors["base"] = "empty_api_key"
+                else:
+                    _LOGGER.debug(f"Validating API key: {api_key[:10]}...")
+                    api_client = GoldAPIClient(api_key)
+                    result = await api_client.get_gold_price()
+                    _LOGGER.info(f"API validation successful. Gold price: {result.get('price')}")
 
-                await self.async_set_unique_id(user_input[CONF_API_KEY])
-                self._abort_if_unique_id_configured()
+                    await self.async_set_unique_id(api_key)
+                    self._abort_if_unique_id_configured()
 
-                return self.async_create_entry(
-                    title=user_input.get(CONF_NAME, "Gold Portfolio"),
-                    data={CONF_API_KEY: user_input[CONF_API_KEY]},
-                )
+                    return self.async_create_entry(
+                        title=user_input.get(CONF_NAME, "Gold Portfolio"),
+                        data={CONF_API_KEY: api_key},
+                    )
+            except ValueError as err:
+                _LOGGER.error(f"API validation error: {err}")
+                # Map specific error messages
+                error_msg = str(err).lower()
+                if "invalid api key" in error_msg or "authentication failed" in error_msg:
+                    errors["base"] = "invalid_api_key"
+                elif "access forbidden" in error_msg:
+                    errors["base"] = "forbidden_api_key"
+                elif "rate limit" in error_msg:
+                    errors["base"] = "rate_limit_exceeded"
+                elif "timeout" in error_msg:
+                    errors["base"] = "connection_timeout"
+                else:
+                    errors["base"] = "api_error"
             except Exception as err:
-                _LOGGER.error("Error validating API key: %s", err)
-                errors["base"] = "invalid_api_key"
+                _LOGGER.error(f"Unexpected error validating API key: {err}")
+                errors["base"] = "unknown_error"
 
         data_schema = vol.Schema(
             {

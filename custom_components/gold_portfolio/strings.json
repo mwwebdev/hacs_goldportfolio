@@ -7,13 +7,19 @@ STRINGS = {
                 "title": "Gold Portfolio Tracker",
                 "description": "Verbinde dich mit der Gold API",
                 "data": {
-                    "api_key": "Gold API Token Key",
+                    "api_key": "Gold API Token Key (z.B. goldapi-xxxxx-io)",
                     "name": "Name der Integration",
                 },
             }
         },
         "error": {
-            "invalid_api_key": "Ungültiger API-Schlüssel",
+            "invalid_api_key": "Ungültiger oder abgelaufener API-Schlüssel. Überprüfe deinen Key auf https://www.goldapi.io/",
+            "empty_api_key": "API-Schlüssel darf nicht leer sein",
+            "forbidden_api_key": "API-Schlüssel wurde deaktiviert oder hat keine Berechtigung",
+            "rate_limit_exceeded": "Rate Limit überschritten - warte bitte einige Sekunden und versuche es erneut",
+            "connection_timeout": "Verbindung zur Gold API hat zeitgesteuert - überprüfe deine Internetverbindung",
+            "api_error": "Fehler bei der API-Anfrage - überprüfe den API-Key und deine Internetverbindung",
+            "unknown_error": "Unbekannter Fehler - schaue in die Home Assistant Logs für Details",
         },
     },
     "options": {
