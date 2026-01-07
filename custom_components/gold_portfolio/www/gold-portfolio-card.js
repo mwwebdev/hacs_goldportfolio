@@ -45,12 +45,34 @@ class GoldPortfolioCard extends HTMLElement {
     if (!this._root) {
       this.render();
     } else {
-      // Just update the content without full re-render
-      const card = this._root.querySelector("ha-card");
-      if (card) {
-        card.innerHTML = this._renderContent();
+      // Just update the TEXT CONTENT of existing elements, don't recreate DOM!
+      const totalGramsEl = this._root.querySelector('[data-metric="total-grams"]');
+      const currentValueEl = this._root.querySelector('[data-metric="current-value"]');
+      const gainEurEl = this._root.querySelector('[data-metric="gain-eur"]');
+      const gainPercentEl = this._root.querySelector('[data-metric="gain-percent"]');
+
+      if (totalGramsEl) totalGramsEl.textContent = this._getEntityState(this.config.total_grams_entity) + ' g';
+      if (currentValueEl) currentValueEl.textContent = this._getEntityState(this.config.current_value_entity) + ' €';
+      if (gainEurEl) gainEurEl.textContent = this._getEntityState(this.config.gain_eur_entity) + ' €';
+      if (gainPercentEl) gainPercentEl.textContent = this._getEntityState(this.config.gain_percent_entity) + '%';
+
+      // Update color classes
+      const gainEurNum = parseFloat(this._getEntityState(this.config.gain_eur_entity));
+      const gainClass = gainEurNum >= 0 ? 'gain' : 'loss';
+      
+      if (gainEurEl) {
+        gainEurEl.className = 'stat-value ' + gainClass;
+      }
+      if (gainPercentEl) {
+        gainPercentEl.className = 'stat-value ' + gainClass;
       }
     }
+  }
+
+  _getEntityState(entityId) {
+    if (!entityId) return "N/A";
+    const entity = this.hassObj?.states[entityId];
+    return entity?.state || "N/A";
   }
 
   setConfig(config) {
@@ -212,16 +234,6 @@ class GoldPortfolioCard extends HTMLElement {
     const gainEurSensor = this.config.gain_eur_entity;
     const gainPercentSensor = this.config.gain_percent_entity;
 
-    const getEntityState = (entityId) => {
-      if (!entityId) return "N/A";
-      const entity = this.hassObj?.states[entityId];
-      if (!entity) {
-        console.warn(`Entity ${entityId} not found`);
-        return "N/A";
-      }
-      return entity.state || "N/A";
-    };
-
     // Check if all required entities are configured
     if (!totalGramsSensor || !currentValueSensor || !gainEurSensor || !gainPercentSensor) {
       return `
@@ -232,10 +244,10 @@ class GoldPortfolioCard extends HTMLElement {
       `;
     }
 
-    const totalGrams = getEntityState(totalGramsSensor);
-    const currentValue = getEntityState(currentValueSensor);
-    const gainEur = getEntityState(gainEurSensor);
-    const gainPercent = getEntityState(gainPercentSensor);
+    const totalGrams = this._getEntityState(totalGramsSensor);
+    const currentValue = this._getEntityState(currentValueSensor);
+    const gainEur = this._getEntityState(gainEurSensor);
+    const gainPercent = this._getEntityState(gainPercentSensor);
 
     const gainEurNum = parseFloat(gainEur);
     const gainClass = gainEurNum >= 0 ? "gain" : "loss";
@@ -246,22 +258,22 @@ class GoldPortfolioCard extends HTMLElement {
       <div class="stats-grid">
         <div class="stat-item">
           <div class="stat-label">Gesamtmenge Gold</div>
-          <div class="stat-value">${totalGrams} g</div>
+          <div class="stat-value" data-metric="total-grams">${totalGrams} g</div>
         </div>
         
         <div class="stat-item">
           <div class="stat-label">Aktueller Wert</div>
-          <div class="stat-value">${currentValue} €</div>
+          <div class="stat-value" data-metric="current-value">${currentValue} €</div>
         </div>
         
         <div class="stat-item">
           <div class="stat-label">Gewinn (EUR)</div>
-          <div class="stat-value ${gainClass}">${gainEur} €</div>
+          <div class="stat-value ${gainClass}" data-metric="gain-eur">${gainEur} €</div>
         </div>
         
         <div class="stat-item">
           <div class="stat-label">Gewinn (%)</div>
-          <div class="stat-value ${gainClass}">${gainPercent}%</div>
+          <div class="stat-value ${gainClass}" data-metric="gain-percent">${gainPercent}%</div>
         </div>
       </div>
     `;
