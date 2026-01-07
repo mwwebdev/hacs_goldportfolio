@@ -26,6 +26,9 @@ class GoldPortfolioCard extends HTMLElement {
     }
 
     const root = this.shadowRoot || this.attachShadow({ mode: "open" });
+    
+    // Clear previous content
+    root.innerHTML = "";
 
     const styleTemplate = document.createElement("template");
     styleTemplate.innerHTML = `
@@ -157,9 +160,24 @@ class GoldPortfolioCard extends HTMLElement {
     const gainPercentSensor = this.config.gain_percent_entity;
 
     const getEntityState = (entityId) => {
+      if (!entityId) return "N/A";
       const entity = this.hassObj?.states[entityId];
-      return entity ? entity.state : "N/A";
+      if (!entity) {
+        console.warn(`Entity ${entityId} not found`);
+        return "N/A";
+      }
+      return entity.state || "N/A";
     };
+
+    // Check if all required entities are configured
+    if (!totalGramsSensor || !currentValueSensor || !gainEurSensor || !gainPercentSensor) {
+      return `
+        <div style="padding: 16px; color: var(--error-color, red);">
+          ⚠️ Konfiguration unvollständig!<br>
+          Bitte alle Entity-IDs konfigurieren.
+        </div>
+      `;
+    }
 
     const totalGrams = getEntityState(totalGramsSensor);
     const currentValue = getEntityState(currentValueSensor);
