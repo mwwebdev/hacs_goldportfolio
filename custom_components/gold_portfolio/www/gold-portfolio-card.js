@@ -139,15 +139,15 @@ class GoldPortfolioCard extends HTMLElement {
   }
 
   _renderContent() {
-    const { type } = this.config;
+    const { card_type } = this.config;
 
-    if (type === "portfolio-total") {
+    if (card_type === "portfolio-total") {
       return this._renderPortfolioTotal();
-    } else if (type === "portfolio-entry") {
+    } else if (card_type === "portfolio-entry") {
       return this._renderPortfolioEntry();
     }
 
-    return `<div style="padding: 16px;">Konfiguration erforderlich</div>`;
+    return `<div style="padding: 16px;">Konfiguration erforderlich (card_type nicht gesetzt)</div>`;
   }
 
   _renderPortfolioTotal() {

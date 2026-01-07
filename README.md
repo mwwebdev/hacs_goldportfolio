@@ -71,7 +71,7 @@ Die Integration erstellt automatisch folgende Sensoren:
 
 ```yaml
 type: custom:gold-portfolio-card
-type: portfolio-total
+card_type: portfolio-total
 total_grams_entity: sensor.portfolio_total_grams
 current_value_entity: sensor.portfolio_current_value
 gain_eur_entity: sensor.portfolio_total_gain_eur
@@ -82,7 +82,7 @@ gain_percent_entity: sensor.portfolio_total_gain_percent
 
 ```yaml
 type: custom:gold-portfolio-card
-type: portfolio-entry
+card_type: portfolio-entry
 entry_id: "your_entry_id"
 current_value_entity: sensor.portfolio_current_value
 gain_eur_entity: sensor.portfolio_total_gain_eur
