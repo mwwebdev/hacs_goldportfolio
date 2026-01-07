@@ -6,6 +6,7 @@ from typing import Any, Dict
 import voluptuous as vol
 from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.helpers.service import async_register_admin_service
+from homeassistant.core import SupportsResponse
 
 from .api import GoldAPIClient
 from .const import (
@@ -204,6 +205,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         schema=vol.Schema({
             vol.Required("entry_id"): str,
         }),
+        supports_response=SupportsResponse.OPTIONAL,
     )
 
     async_register_admin_service(
@@ -215,6 +217,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             vol.Required("entry_id"): str,
             vol.Required("date"): str,
         }),
+        supports_response=SupportsResponse.OPTIONAL,
     )
 
     _LOGGER.debug("Registered services for Gold Portfolio")

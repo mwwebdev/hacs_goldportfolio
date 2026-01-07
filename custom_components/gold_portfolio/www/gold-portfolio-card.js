@@ -1,34 +1,12 @@
 class GoldPortfolioCard extends HTMLElement {
   constructor() {
     super();
-    this._previousStates = {};
+    this._lastRenderedContent = null;
   }
 
   set hass(hass) {
     this.hassObj = hass;
-    
-    // Only render if states actually changed
-    if (this._statesChanged()) {
-      this.render();
-    }
-  }
-
-  _statesChanged() {
-    if (!this.config) return false;
-    
-    const { total_grams_entity, current_value_entity, gain_eur_entity, gain_percent_entity } = this.config;
-    const entities = [total_grams_entity, current_value_entity, gain_eur_entity, gain_percent_entity];
-    
-    for (const entity of entities) {
-      if (!entity) continue;
-      const currentState = this.hassObj?.states[entity]?.state;
-      if (this._previousStates[entity] !== currentState) {
-        this._previousStates[entity] = currentState;
-        return true;
-      }
-    }
-    
-    return false;
+    this.render();
   }
 
   setConfig(config) {
@@ -52,9 +30,16 @@ class GoldPortfolioCard extends HTMLElement {
       return;
     }
 
-    const root = this.shadowRoot || this.attachShadow({ mode: "open" });
+    const newContent = this._renderContent();
     
-    // Clear previous content
+    // Only re-render if content actually changed
+    if (newContent === this._lastRenderedContent) {
+      return;
+    }
+    
+    this._lastRenderedContent = newContent;
+
+    const root = this.shadowRoot || this.attachShadow({ mode: "open" });
     root.innerHTML = "";
 
     const styleTemplate = document.createElement("template");
@@ -164,7 +149,7 @@ class GoldPortfolioCard extends HTMLElement {
     root.appendChild(styleTemplate.content.cloneNode(true));
 
     const card = document.createElement("ha-card");
-    card.innerHTML = this._renderContent();
+    card.innerHTML = newContent;
     root.appendChild(card);
   }
 

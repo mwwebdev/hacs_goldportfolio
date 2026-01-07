@@ -63,7 +63,7 @@ Die Integration erstellt automatisch folgende Sensoren:
 - `sensor.portfolio_total_grams` - Gesamtmenge Gold in Gramm
 - `sensor.portfolio_current_value` - Aktueller Portfoliowert in EUR
 - `sensor.portfolio_total_gain_eur` - Gesamtgewinn in EUR
-- `sensor.portfolio_total_gain_percent` - Gesamtgewinn in Prozent
+- `sensor.portfolio_total_gain` - Gesamtgewinn in Prozent
 
 ## Widgets
 
@@ -75,7 +75,7 @@ card_type: portfolio-total
 total_grams_entity: sensor.portfolio_total_grams
 current_value_entity: sensor.portfolio_current_value
 gain_eur_entity: sensor.portfolio_total_gain_eur
-gain_percent_entity: sensor.portfolio_total_gain_percent
+gain_percent_entity: sensor.portfolio_total_gain
 ```
 
 ### Widget 2: Einzelner Eintrag
