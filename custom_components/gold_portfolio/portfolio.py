@@ -11,8 +11,12 @@ _LOGGER = logging.getLogger(__name__)
 class PortfolioManager:
     """Manage the gold portfolio entries."""
 
-    def __init__(self, config_dir: Path):
+    def __init__(self, config_dir):
         """Initialize portfolio manager."""
+        # Convert to Path if string
+        if isinstance(config_dir, str):
+            config_dir = Path(config_dir)
+        
         self.config_dir = config_dir
         self.portfolio_file = config_dir / ".storage" / "gold_portfolio_entries.json"
         self.portfolio_file.parent.mkdir(parents=True, exist_ok=True)
