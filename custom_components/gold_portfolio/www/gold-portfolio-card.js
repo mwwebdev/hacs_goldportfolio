@@ -1,12 +1,56 @@
 class GoldPortfolioCard extends HTMLElement {
   constructor() {
     super();
-    this._lastRenderedContent = null;
+    this._root = null;
+    this._previousValues = {};
+    this._initialized = false;
   }
 
   set hass(hass) {
     this.hassObj = hass;
-    this.render();
+    
+    // Only update if values changed
+    if (this._shouldUpdate()) {
+      this._update();
+    }
+  }
+
+  _shouldUpdate() {
+    if (!this.hassObj || !this.config || !this._initialized) {
+      return true;
+    }
+
+    const currentValues = this._getCurrentValues();
+    const changed = JSON.stringify(currentValues) !== JSON.stringify(this._previousValues);
+    
+    if (changed) {
+      this._previousValues = currentValues;
+    }
+    
+    return changed;
+  }
+
+  _getCurrentValues() {
+    const { total_grams_entity, current_value_entity, gain_eur_entity, gain_percent_entity } = this.config;
+    
+    return {
+      totalGrams: this.hassObj?.states[total_grams_entity]?.state,
+      currentValue: this.hassObj?.states[current_value_entity]?.state,
+      gainEur: this.hassObj?.states[gain_eur_entity]?.state,
+      gainPercent: this.hassObj?.states[gain_percent_entity]?.state,
+    };
+  }
+
+  _update() {
+    if (!this._root) {
+      this.render();
+    } else {
+      // Just update the content without full re-render
+      const card = this._root.querySelector("ha-card");
+      if (card) {
+        card.innerHTML = this._renderContent();
+      }
+    }
   }
 
   setConfig(config) {
@@ -30,17 +74,8 @@ class GoldPortfolioCard extends HTMLElement {
       return;
     }
 
-    const newContent = this._renderContent();
-    
-    // Only re-render if content actually changed
-    if (newContent === this._lastRenderedContent) {
-      return;
-    }
-    
-    this._lastRenderedContent = newContent;
-
-    const root = this.shadowRoot || this.attachShadow({ mode: "open" });
-    root.innerHTML = "";
+    this._root = this.shadowRoot || this.attachShadow({ mode: "open" });
+    this._root.innerHTML = "";
 
     const styleTemplate = document.createElement("template");
     styleTemplate.innerHTML = `
@@ -48,6 +83,7 @@ class GoldPortfolioCard extends HTMLElement {
         :host {
           --text-color: var(--primary-text-color);
           --muted-color: var(--secondary-text-color);
+          --card-background: var(--card-background-color);
         }
         
         ha-card {
@@ -70,34 +106,37 @@ class GoldPortfolioCard extends HTMLElement {
 
         .stat-item {
           padding: 12px;
-          background: var(--background-color, #f5f5f5);
+          background: rgba(var(--rgb-primary-color), 0.15);
           border-radius: 8px;
           border-left: 4px solid var(--primary-color);
         }
 
         .stat-label {
-          font-size: 12px;
+          font-size: 11px;
           color: var(--muted-color);
           text-transform: uppercase;
           margin-bottom: 4px;
+          font-weight: 600;
+          opacity: 0.8;
         }
 
         .stat-value {
-          font-size: 18px;
-          font-weight: bold;
+          font-size: 20px;
+          font-weight: 700;
           color: var(--text-color);
+          letter-spacing: 0.5px;
         }
 
         .stat-value.gain {
-          color: #4caf50;
+          color: #66bb6a;
         }
 
         .stat-value.loss {
-          color: #f44336;
+          color: #ef5350;
         }
 
         .divider {
-          border-top: 1px solid var(--divider-color, #e0e0e0);
+          border-top: 1px solid var(--divider-color, rgba(255,255,255,0.1));
           margin: 16px 0;
         }
 
@@ -108,7 +147,7 @@ class GoldPortfolioCard extends HTMLElement {
 
         .entry-item {
           padding: 12px;
-          background: var(--background-color, #f5f5f5);
+          background: rgba(var(--rgb-primary-color), 0.1);
           border-radius: 4px;
           margin-bottom: 8px;
           cursor: pointer;
@@ -116,7 +155,7 @@ class GoldPortfolioCard extends HTMLElement {
         }
 
         .entry-item:hover {
-          background-color: var(--primary-color-alpha, rgba(0,0,0,0.05));
+          background-color: rgba(var(--rgb-primary-color), 0.2);
         }
 
         .entry-date {
@@ -133,7 +172,7 @@ class GoldPortfolioCard extends HTMLElement {
 
         .chart-container {
           margin-top: 16px;
-          background: var(--background-color, #f5f5f5);
+          background: rgba(var(--rgb-primary-color), 0.1);
           padding: 12px;
           border-radius: 8px;
         }
@@ -146,11 +185,13 @@ class GoldPortfolioCard extends HTMLElement {
       </style>
     `;
 
-    root.appendChild(styleTemplate.content.cloneNode(true));
+    this._root.appendChild(styleTemplate.content.cloneNode(true));
 
     const card = document.createElement("ha-card");
-    card.innerHTML = newContent;
-    root.appendChild(card);
+    card.innerHTML = this._renderContent();
+    this._root.appendChild(card);
+    
+    this._initialized = true;
   }
 
   _renderContent() {

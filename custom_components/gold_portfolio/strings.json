@@ -26,11 +26,6 @@ STRINGS = {
         "step": {
             "init": {
                 "title": "Gold Portfolio Optionen",
-                "description": "Konfiguriere die Aktualisierungshäufigkeit",
+                "description": "Konfiguriere die Aktualisierungshäufigkeit für Goldpreise",
                 "data": {
-                    "update_interval": "Aktualisierungshäufigkeit pro Tag",
-                },
-            }
-        }
-    },
-}
+                    "update_interval": "Updates pro Tag",
