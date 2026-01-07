@@ -1,0 +1,42 @@
+"""Example automation for Gold Portfolio Tracker."""
+
+# Beispiel 1: Portfolio-Eintrag hinzufügen
+# Diese Automatisierung zeigt, wie man einen neuen Gold-Kauf dem Portfolio hinzufügt
+
+automation:
+  - alias: "Gold Portfolio - Eintrag hinzufügen"
+    trigger:
+      platform: time
+      at: "10:00:00"
+    action:
+      service: gold_portfolio.add_portfolio_entry
+      data:
+        entry_id: "DEINE_INTEGRATION_ID"
+        purchase_date: "2024-01-15"
+        amount_grams: 100
+        purchase_price_eur: 5800
+
+# Beispiel 2: Benachrichtigung bei hohem Gewinn
+automation:
+  - alias: "Gold Portfolio - Benachrichtigung bei hohem Gewinn"
+    trigger:
+      entity_id: sensor.portfolio_total_gain_percent
+      platform: numeric_state
+      above: 20
+    action:
+      service: notify.notify
+      data:
+        message: "🎉 Dein Gold Portfolio hat einen Gewinn von über 20% erreicht!"
+        title: "Gold Portfolio Gewinn"
+
+# Beispiel 3: Goldpreis-Update Benachrichtigung
+automation:
+  - alias: "Gold Portfolio - Goldpreis-Update"
+    trigger:
+      platform: state
+      entity_id: sensor.gold_price
+    action:
+      service: notify.notify
+      data:
+        message: "Der Goldpreis hat sich geändert: {{ states('sensor.gold_price') }} EUR/Troy Oz"
+        title: "Goldpreis Update"

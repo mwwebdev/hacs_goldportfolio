@@ -1,0 +1,12 @@
+{
+  "manifest_version": 1,
+  "domain": "gold_portfolio",
+  "name": "Gold Portfolio Tracker",
+  "codeowners": ["@user"],
+  "config_flow": true,
+  "documentation": "https://github.com/user/ha_goldportfolio",
+  "requirements": ["aiohttp>=3.8.1"],
+  "version": "1.0.0",
+  "issue_tracker": "https://github.com/user/ha_goldportfolio/issues",
+  "homeassistant": "2023.12.0"
+}

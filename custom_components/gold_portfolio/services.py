@@ -1,0 +1,235 @@
+"""Services for Gold Portfolio Tracker."""
+import logging
+from datetime import datetime
+from typing import Any, Dict
+
+from homeassistant.core import HomeAssistant, ServiceCall, callback
+from homeassistant.helpers.service import async_register_admin_service
+
+from .api import GoldAPIClient
+from .const import (
+    CONF_API_KEY,
+    DOMAIN,
+    SERVICE_ADD_PORTFOLIO_ENTRY,
+    SERVICE_GET_HISTORICAL_PRICE,
+    SERVICE_GET_PORTFOLIO_ENTRIES,
+    SERVICE_REMOVE_PORTFOLIO_ENTRY,
+    SERVICE_UPDATE_PORTFOLIO_ENTRY,
+)
+from .portfolio import PortfolioManager
+
+_LOGGER = logging.getLogger(__name__)
+
+
+async def async_setup_services(hass: HomeAssistant) -> None:
+    """Set up services for Gold Portfolio."""
+
+    async def add_portfolio_entry(call: ServiceCall) -> None:
+        """Add a new portfolio entry."""
+        entry_id = call.data.get("entry_id")
+        if entry_id not in hass.data[DOMAIN]:
+            _LOGGER.error("Config entry not found: %s", entry_id)
+            return
+
+        portfolio_manager = hass.data[DOMAIN][entry_id].get("portfolio_manager")
+        if not portfolio_manager:
+            _LOGGER.error("Portfolio manager not found for entry: %s", entry_id)
+            return
+
+        try:
+            purchase_date = call.data.get("purchase_date")
+            amount_grams = call.data.get("amount_grams")
+            purchase_price_eur = call.data.get("purchase_price_eur")
+            purchase_price_per_gram = call.data.get("purchase_price_per_gram")
+
+            # If neither price is provided, try to fetch historical price
+            if purchase_price_eur is None and purchase_price_per_gram is None:
+                api_client = hass.data[DOMAIN][entry_id]["api_client"]
+                coordinator = hass.data[DOMAIN][entry_id]["coordinator"]
+
+                if coordinator.data:
+                    # Use current price as fallback
+                    price_per_gram = coordinator.data.get("price", 0) / 31.1035
+                    purchase_price_eur = amount_grams * price_per_gram
+                    _LOGGER.warning(
+                        "No purchase price provided, using current price as fallback: %s EUR",
+                        purchase_price_eur,
+                    )
+
+            entry = portfolio_manager.add_entry(
+                purchase_date=purchase_date,
+                amount_grams=amount_grams,
+                purchase_price_eur=purchase_price_eur,
+                purchase_price_per_gram=purchase_price_per_gram,
+            )
+            _LOGGER.info("Added portfolio entry: %s", entry.get("id"))
+        except Exception as err:
+            _LOGGER.error("Error adding portfolio entry: %s", err)
+
+    async def remove_portfolio_entry(call: ServiceCall) -> None:
+        """Remove a portfolio entry."""
+        entry_id = call.data.get("entry_id")
+        portfolio_entry_id = call.data.get("portfolio_entry_id")
+
+        if entry_id not in hass.data[DOMAIN]:
+            _LOGGER.error("Config entry not found: %s", entry_id)
+            return
+
+        portfolio_manager = hass.data[DOMAIN][entry_id].get("portfolio_manager")
+        if not portfolio_manager:
+            _LOGGER.error("Portfolio manager not found for entry: %s", entry_id)
+            return
+
+        try:
+            if portfolio_manager.remove_entry(portfolio_entry_id):
+                _LOGGER.info("Removed portfolio entry: %s", portfolio_entry_id)
+            else:
+                _LOGGER.warning("Portfolio entry not found: %s", portfolio_entry_id)
+        except Exception as err:
+            _LOGGER.error("Error removing portfolio entry: %s", err)
+
+    async def update_portfolio_entry(call: ServiceCall) -> None:
+        """Update a portfolio entry."""
+        entry_id = call.data.get("entry_id")
+        portfolio_entry_id = call.data.get("portfolio_entry_id")
+
+        if entry_id not in hass.data[DOMAIN]:
+            _LOGGER.error("Config entry not found: %s", entry_id)
+            return
+
+        portfolio_manager = hass.data[DOMAIN][entry_id].get("portfolio_manager")
+        if not portfolio_manager:
+            _LOGGER.error("Portfolio manager not found for entry: %s", entry_id)
+            return
+
+        try:
+            updated = portfolio_manager.update_entry(
+                entry_id=portfolio_entry_id,
+                purchase_date=call.data.get("purchase_date"),
+                amount_grams=call.data.get("amount_grams"),
+                purchase_price_eur=call.data.get("purchase_price_eur"),
+            )
+            if updated:
+                _LOGGER.info("Updated portfolio entry: %s", portfolio_entry_id)
+            else:
+                _LOGGER.warning("Portfolio entry not found: %s", portfolio_entry_id)
+        except Exception as err:
+            _LOGGER.error("Error updating portfolio entry: %s", err)
+
+    async def get_portfolio_entries(call: ServiceCall) -> None:
+        """Get all portfolio entries."""
+        entry_id = call.data.get("entry_id")
+
+        if entry_id not in hass.data[DOMAIN]:
+            _LOGGER.error("Config entry not found: %s", entry_id)
+            return
+
+        portfolio_manager = hass.data[DOMAIN][entry_id].get("portfolio_manager")
+        if not portfolio_manager:
+            _LOGGER.error("Portfolio manager not found for entry: %s", entry_id)
+            return
+
+        entries = portfolio_manager.get_entries()
+        _LOGGER.info("Retrieved %d portfolio entries", len(entries))
+
+    async def get_historical_price(call: ServiceCall) -> None:
+        """Get historical gold price for a date."""
+        entry_id = call.data.get("entry_id")
+        date_str = call.data.get("date")  # Format: YYYY-MM-DD
+
+        if entry_id not in hass.data[DOMAIN]:
+            _LOGGER.error("Config entry not found: %s", entry_id)
+            return
+
+        try:
+            api_client = hass.data[DOMAIN][entry_id]["api_client"]
+            price = await api_client.get_historical_price(date_str)
+            if price:
+                _LOGGER.info("Historical price for %s: %s EUR", date_str, price)
+            else:
+                _LOGGER.warning("Could not retrieve historical price for %s", date_str)
+        except Exception as err:
+            _LOGGER.error("Error getting historical price: %s", err)
+
+    # Register services
+    async_register_admin_service(
+        hass,
+        DOMAIN,
+        SERVICE_ADD_PORTFOLIO_ENTRY,
+        add_portfolio_entry,
+        schema={
+            "type": "object",
+            "properties": {
+                "entry_id": {"type": "string"},
+                "purchase_date": {"type": "string"},
+                "amount_grams": {"type": "number"},
+                "purchase_price_eur": {"type": ["number", "null"]},
+                "purchase_price_per_gram": {"type": ["number", "null"]},
+            },
+            "required": ["entry_id", "purchase_date", "amount_grams"],
+        },
+    )
+
+    async_register_admin_service(
+        hass,
+        DOMAIN,
+        SERVICE_REMOVE_PORTFOLIO_ENTRY,
+        remove_portfolio_entry,
+        schema={
+            "type": "object",
+            "properties": {
+                "entry_id": {"type": "string"},
+                "portfolio_entry_id": {"type": "string"},
+            },
+            "required": ["entry_id", "portfolio_entry_id"],
+        },
+    )
+
+    async_register_admin_service(
+        hass,
+        DOMAIN,
+        SERVICE_UPDATE_PORTFOLIO_ENTRY,
+        update_portfolio_entry,
+        schema={
+            "type": "object",
+            "properties": {
+                "entry_id": {"type": "string"},
+                "portfolio_entry_id": {"type": "string"},
+                "purchase_date": {"type": "string"},
+                "amount_grams": {"type": "number"},
+                "purchase_price_eur": {"type": "number"},
+            },
+            "required": ["entry_id", "portfolio_entry_id"],
+        },
+    )
+
+    async_register_admin_service(
+        hass,
+        DOMAIN,
+        SERVICE_GET_PORTFOLIO_ENTRIES,
+        get_portfolio_entries,
+        schema={
+            "type": "object",
+            "properties": {
+                "entry_id": {"type": "string"},
+            },
+            "required": ["entry_id"],
+        },
+    )
+
+    async_register_admin_service(
+        hass,
+        DOMAIN,
+        SERVICE_GET_HISTORICAL_PRICE,
+        get_historical_price,
+        schema={
+            "type": "object",
+            "properties": {
+                "entry_id": {"type": "string"},
+                "date": {"type": "string"},
+            },
+            "required": ["entry_id", "date"],
+        },
+    )
+
+    _LOGGER.debug("Registered services for Gold Portfolio")

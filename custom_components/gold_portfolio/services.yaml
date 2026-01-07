@@ -1,0 +1,117 @@
+add_portfolio_entry:
+  name: Portfolio-Eintrag hinzufügen
+  description: Fügt einen neuen Goldkauf zum Portfolio hinzu
+  fields:
+    entry_id:
+      name: Integration ID
+      description: Die ID deiner Gold Portfolio Konfiguration
+      required: true
+      selector:
+        text:
+    purchase_date:
+      name: Kaufdatum
+      description: Datum des Goldkaufs (Format YYYY-MM-DD)
+      required: true
+      selector:
+        date:
+    amount_grams:
+      name: Menge in Gramm
+      description: Wie viel Gold wurde gekauft (in Gramm)
+      required: true
+      selector:
+        number:
+          min: 0.01
+          step: 0.01
+    purchase_price_eur:
+      name: Kaufpreis (EUR)
+      description: Gesamtpreis in EUR (optional, wenn nicht angegeben wird der aktuelle Goldkurs verwendet)
+      required: false
+      selector:
+        number:
+          min: 0
+          step: 0.01
+    purchase_price_per_gram:
+      name: Kaufpreis pro Gramm (EUR)
+      description: Preis pro Gramm Gold (optional, wird mit Menge multipliziert)
+      required: false
+      selector:
+        number:
+          min: 0
+          step: 0.01
+
+remove_portfolio_entry:
+  name: Portfolio-Eintrag löschen
+  description: Entfernt einen Eintrag aus dem Portfolio
+  fields:
+    entry_id:
+      name: Integration ID
+      required: true
+      selector:
+        text:
+    portfolio_entry_id:
+      name: Portfolio-Eintrag ID
+      description: Die ID des zu löschenden Eintrags
+      required: true
+      selector:
+        text:
+
+update_portfolio_entry:
+  name: Portfolio-Eintrag aktualisieren
+  description: Aktualisiert einen vorhandenen Portfolio-Eintrag
+  fields:
+    entry_id:
+      name: Integration ID
+      required: true
+      selector:
+        text:
+    portfolio_entry_id:
+      name: Portfolio-Eintrag ID
+      required: true
+      selector:
+        text:
+    purchase_date:
+      name: Kaufdatum
+      description: Datum des Goldkaufs (Format YYYY-MM-DD)
+      required: false
+      selector:
+        date:
+    amount_grams:
+      name: Menge in Gramm
+      required: false
+      selector:
+        number:
+          min: 0.01
+          step: 0.01
+    purchase_price_eur:
+      name: Kaufpreis (EUR)
+      required: false
+      selector:
+        number:
+          min: 0
+          step: 0.01
+
+get_portfolio_entries:
+  name: Portfolio-Einträge abrufen
+  description: Ruft alle Portfolio-Einträge ab
+  fields:
+    entry_id:
+      name: Integration ID
+      required: true
+      selector:
+        text:
+
+get_historical_price:
+  name: Historischen Goldpreis abrufen
+  description: Ruft den Goldpreis für ein bestimmtes Datum ab
+  fields:
+    entry_id:
+      name: Integration ID
+      required: true
+      selector:
+        text:
+    date:
+      name: Datum
+      description: Datum für den Goldpreis (Format YYYY-MM-DD)
+      required: true
+      selector:
+        date:

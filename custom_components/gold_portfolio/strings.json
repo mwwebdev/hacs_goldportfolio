@@ -1,0 +1,30 @@
+"""Strings for Gold Portfolio Tracker integration."""
+
+STRINGS = {
+    "config": {
+        "step": {
+            "user": {
+                "title": "Gold Portfolio Tracker",
+                "description": "Verbinde dich mit der Gold API",
+                "data": {
+                    "api_key": "Gold API Token Key",
+                    "name": "Name der Integration",
+                },
+            }
+        },
+        "error": {
+            "invalid_api_key": "Ungültiger API-Schlüssel",
+        },
+    },
+    "options": {
+        "step": {
+            "init": {
+                "title": "Gold Portfolio Optionen",
+                "description": "Konfiguriere die Aktualisierungshäufigkeit",
+                "data": {
+                    "update_interval": "Aktualisierungshäufigkeit pro Tag",
+                },
+            }
+        }
+    },
+}
