@@ -117,40 +117,44 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         except Exception as err:
             _LOGGER.error("Error updating portfolio entry: %s", err)
 
-    async def get_portfolio_entries(call: ServiceCall) -> None:
+    async def get_portfolio_entries(call: ServiceCall) -> Dict[str, Any]:
         """Get all portfolio entries."""
         entry_id = call.data.get("entry_id")
 
         if entry_id not in hass.data[DOMAIN]:
             _LOGGER.error("Config entry not found: %s", entry_id)
-            return
+            return {"error": "Config entry not found"}
 
         portfolio_manager = hass.data[DOMAIN][entry_id].get("portfolio_manager")
         if not portfolio_manager:
             _LOGGER.error("Portfolio manager not found for entry: %s", entry_id)
-            return
+            return {"error": "Portfolio manager not found"}
 
         entries = portfolio_manager.get_entries()
         _LOGGER.info("Retrieved %d portfolio entries", len(entries))
+        return {"entries": entries}
 
-    async def get_historical_price(call: ServiceCall) -> None:
+    async def get_historical_price(call: ServiceCall) -> Dict[str, Any]:
         """Get historical gold price for a date."""
         entry_id = call.data.get("entry_id")
         date_str = call.data.get("date")  # Format: YYYY-MM-DD
 
         if entry_id not in hass.data[DOMAIN]:
             _LOGGER.error("Config entry not found: %s", entry_id)
-            return
+            return {"error": "Config entry not found"}
 
         try:
             api_client = hass.data[DOMAIN][entry_id]["api_client"]
             price = await api_client.get_historical_price(date_str)
             if price:
                 _LOGGER.info("Historical price for %s: %s EUR", date_str, price)
+                return {"date": date_str, "price": price}
             else:
                 _LOGGER.warning("Could not retrieve historical price for %s", date_str)
+                return {"error": f"Could not retrieve price for {date_str}"}
         except Exception as err:
             _LOGGER.error("Error getting historical price: %s", err)
+            return {"error": str(err)}
 
     # Register services
     async_register_admin_service(

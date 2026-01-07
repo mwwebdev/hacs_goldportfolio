@@ -1,7 +1,34 @@
 class GoldPortfolioCard extends HTMLElement {
+  constructor() {
+    super();
+    this._previousStates = {};
+  }
+
   set hass(hass) {
     this.hassObj = hass;
-    this.render();
+    
+    // Only render if states actually changed
+    if (this._statesChanged()) {
+      this.render();
+    }
+  }
+
+  _statesChanged() {
+    if (!this.config) return false;
+    
+    const { total_grams_entity, current_value_entity, gain_eur_entity, gain_percent_entity } = this.config;
+    const entities = [total_grams_entity, current_value_entity, gain_eur_entity, gain_percent_entity];
+    
+    for (const entity of entities) {
+      if (!entity) continue;
+      const currentState = this.hassObj?.states[entity]?.state;
+      if (this._previousStates[entity] !== currentState) {
+        this._previousStates[entity] = currentState;
+        return true;
+      }
+    }
+    
+    return false;
   }
 
   setConfig(config) {
