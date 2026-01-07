@@ -2,13 +2,11 @@
 import asyncio
 import logging
 from datetime import timedelta
-from pathlib import Path
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import GoldAPIClient
 from .const import DOMAIN, UPDATE_INTERVAL_DEFAULT
@@ -19,30 +17,7 @@ from . import sensor as _sensor_module  # noqa: F401
 
 _LOGGER = logging.getLogger(__name__)
 
-# Get integration directory path
-INTEGRATION_DIR = Path(__file__).parent
-
 PLATFORMS: list[Platform] = [Platform.SENSOR]
-
-
-async def async_setup(hass: HomeAssistant, config: dict) -> bool:
-    """Set up Gold Portfolio integration."""
-    # Register custom card resources
-    www_path = INTEGRATION_DIR / "www"
-    if www_path.exists():
-        hass.http.register_static_path(
-            "/local/gold-portfolio-card.js",
-            str(www_path / "gold-portfolio-card.js"),
-            cache_headers=False
-        )
-        hass.http.register_static_path(
-            "/local/gold-portfolio-card-editor.js",
-            str(www_path / "gold-portfolio-card-editor.js"),
-            cache_headers=False
-        )
-        _LOGGER.debug("Registered custom card resources")
-    
-    return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
