@@ -3,6 +3,7 @@ import logging
 from datetime import datetime
 from typing import Any, Dict
 
+import voluptuous as vol
 from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.helpers.service import async_register_admin_service
 
@@ -157,17 +158,13 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         DOMAIN,
         SERVICE_ADD_PORTFOLIO_ENTRY,
         add_portfolio_entry,
-        schema={
-            "type": "object",
-            "properties": {
-                "entry_id": {"type": "string"},
-                "purchase_date": {"type": "string"},
-                "amount_grams": {"type": "number"},
-                "purchase_price_eur": {"type": ["number", "null"]},
-                "purchase_price_per_gram": {"type": ["number", "null"]},
-            },
-            "required": ["entry_id", "purchase_date", "amount_grams"],
-        },
+        schema=vol.Schema({
+            vol.Required("entry_id"): str,
+            vol.Required("purchase_date"): str,
+            vol.Required("amount_grams"): vol.All(vol.Coerce(float), vol.Range(min=0.01)),
+            vol.Optional("purchase_price_eur"): vol.All(vol.Coerce(float), vol.Range(min=0)),
+            vol.Optional("purchase_price_per_gram"): vol.All(vol.Coerce(float), vol.Range(min=0)),
+        }),
     )
 
     async_register_admin_service(
@@ -175,14 +172,10 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         DOMAIN,
         SERVICE_REMOVE_PORTFOLIO_ENTRY,
         remove_portfolio_entry,
-        schema={
-            "type": "object",
-            "properties": {
-                "entry_id": {"type": "string"},
-                "portfolio_entry_id": {"type": "string"},
-            },
-            "required": ["entry_id", "portfolio_entry_id"],
-        },
+        schema=vol.Schema({
+            vol.Required("entry_id"): str,
+            vol.Required("portfolio_entry_id"): str,
+        }),
     )
 
     async_register_admin_service(
@@ -190,17 +183,13 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         DOMAIN,
         SERVICE_UPDATE_PORTFOLIO_ENTRY,
         update_portfolio_entry,
-        schema={
-            "type": "object",
-            "properties": {
-                "entry_id": {"type": "string"},
-                "portfolio_entry_id": {"type": "string"},
-                "purchase_date": {"type": "string"},
-                "amount_grams": {"type": "number"},
-                "purchase_price_eur": {"type": "number"},
-            },
-            "required": ["entry_id", "portfolio_entry_id"],
-        },
+        schema=vol.Schema({
+            vol.Required("entry_id"): str,
+            vol.Required("portfolio_entry_id"): str,
+            vol.Optional("purchase_date"): str,
+            vol.Optional("amount_grams"): vol.All(vol.Coerce(float), vol.Range(min=0.01)),
+            vol.Optional("purchase_price_eur"): vol.All(vol.Coerce(float), vol.Range(min=0)),
+        }),
     )
 
     async_register_admin_service(
@@ -208,13 +197,9 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         DOMAIN,
         SERVICE_GET_PORTFOLIO_ENTRIES,
         get_portfolio_entries,
-        schema={
-            "type": "object",
-            "properties": {
-                "entry_id": {"type": "string"},
-            },
-            "required": ["entry_id"],
-        },
+        schema=vol.Schema({
+            vol.Required("entry_id"): str,
+        }),
     )
 
     async_register_admin_service(
@@ -222,14 +207,10 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         DOMAIN,
         SERVICE_GET_HISTORICAL_PRICE,
         get_historical_price,
-        schema={
-            "type": "object",
-            "properties": {
-                "entry_id": {"type": "string"},
-                "date": {"type": "string"},
-            },
-            "required": ["entry_id", "date"],
-        },
+        schema=vol.Schema({
+            vol.Required("entry_id"): str,
+            vol.Required("date"): str,
+        }),
     )
 
     _LOGGER.debug("Registered services for Gold Portfolio")
