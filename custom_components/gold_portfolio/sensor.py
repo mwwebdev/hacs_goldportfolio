@@ -5,7 +5,6 @@ from typing import Optional
 
 from homeassistant.components.sensor import SensorEntity, SensorStateClass
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import UnitOfPrice
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import (
@@ -17,6 +16,12 @@ from .const import DOMAIN, TROY_OZ_TO_GRAM
 from .portfolio import PortfolioManager
 
 _LOGGER = logging.getLogger(__name__)
+
+# Fallback for older Home Assistant versions
+try:
+    from homeassistant.const import UnitOfPrice
+except ImportError:
+    UnitOfPrice = None
 
 
 async def async_setup_entry(
@@ -52,7 +57,7 @@ class GoldPriceSensor(CoordinatorEntity, SensorEntity):
     _attr_name = "Gold Price"
     _attr_unique_id = "gold_portfolio_price"
     _attr_state_class = SensorStateClass.MEASUREMENT
-    _attr_native_unit_of_measurement = UnitOfPrice.EUR
+    _attr_native_unit_of_measurement = UnitOfPrice.EUR if UnitOfPrice else "€/oz"
     _attr_icon = "mdi:gold"
 
     def __init__(
@@ -114,7 +119,7 @@ class PortfolioTotalValueSensor(CoordinatorEntity, SensorEntity):
     _attr_name = "Portfolio Current Value"
     _attr_unique_id = "gold_portfolio_current_value"
     _attr_state_class = SensorStateClass.MEASUREMENT
-    _attr_native_unit_of_measurement = UnitOfPrice.EUR
+    _attr_native_unit_of_measurement = UnitOfPrice.EUR if UnitOfPrice else "€"
     _attr_icon = "mdi:euro"
 
     def __init__(
@@ -158,7 +163,7 @@ class PortfolioTotalGainSensor(CoordinatorEntity, SensorEntity):
     _attr_name = "Portfolio Total Gain (EUR)"
     _attr_unique_id = "gold_portfolio_total_gain_eur"
     _attr_state_class = SensorStateClass.MEASUREMENT
-    _attr_native_unit_of_measurement = UnitOfPrice.EUR
+    _attr_native_unit_of_measurement = UnitOfPrice.EUR if UnitOfPrice else "€"
     _attr_icon = "mdi:cash-multiple"
 
     def __init__(

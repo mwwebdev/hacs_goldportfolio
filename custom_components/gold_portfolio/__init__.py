@@ -12,6 +12,9 @@ from .api import GoldAPIClient
 from .const import DOMAIN, UPDATE_INTERVAL_DEFAULT
 from .services import async_setup_services
 
+# Pre-load sensor module to avoid blocking import warning
+from . import sensor as _sensor_module  # noqa: F401
+
 _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS: list[Platform] = [Platform.SENSOR]
