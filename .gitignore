@@ -135,6 +135,13 @@ dmypy.json
 config/
 !custom_components/
 
+# API Keys & Secrets
+secrets.yaml
+*.db
+*.db-journal
+*.key
+*_secret*
+
 # Project specific
 *.backup
 *.tmp

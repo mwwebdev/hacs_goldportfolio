@@ -9,7 +9,7 @@ Wenn du den Fehler `invalid_api_key` bekommst, kann das mehrere Ursachen haben.
 ## 1️⃣ **Überprüfe deinen API Key**
 
 ### ✅ Korrektes Format
-- ✓ Sieht aus wie: `goldapi-1bddikdsmjmvqqef-io`
+- ✓ Sieht aus wie: `goldapi-xxxxx-io`
 - ✓ Enthält das `-io` Suffix
 - ✓ Wurde von https://www.goldapi.io/ generiert
 
@@ -29,7 +29,7 @@ Der API Key wird als HTTP Header `x-access-token` gesendet!
 
 **Teste mit curl (PowerShell/Terminal):**
 ```bash
-curl -H "x-access-token: goldapi-1bddikdsmjmvqqef-io" \
+curl -H "x-access-token: YOUR_API_KEY_HERE" \
      -H "Content-Type: application/json" \
      https://www.goldapi.io/api/XAU/EUR
 ```
@@ -86,8 +86,8 @@ API Key authentication failed (401)
 Stelle sicher, dass dein Key **keine Leerzeichen** am Anfang/Ende hat:
 
 ```
-❌ FALSCH: "  goldapi-1bddikdsmjmvqqef-io  "
-✅ RICHTIG: "goldapi-1bddikdsmjmvqqef-io"
+❌ FALSCH: "  YOUR_API_KEY_HERE  "
+✅ RICHTIG: "YOUR_API_KEY_HERE"
 ```
 
 ### Lösung 3: Internetverbindung überprüfen

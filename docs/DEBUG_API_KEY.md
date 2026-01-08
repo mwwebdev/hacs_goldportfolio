@@ -6,7 +6,7 @@
 
 ```bash
 # Mit Header (RICHTIG - so macht es die Integration)
-curl -H "x-access-token: goldapi-1bddikdsmjmvqqef-io" \
+curl -H "x-access-token: YOUR_API_KEY_HERE" \
      -H "Content-Type: application/json" \
      https://www.goldapi.io/api/XAU/EUR
 ```
@@ -15,7 +15,7 @@ Oder mit Python:
 ```python
 import requests
 
-api_key = "goldapi-1bddikdsmjmvqqef-io"
+api_key = "YOUR_API_KEY_HERE"
 headers = {
     "x-access-token": api_key,
     "Content-Type": "application/json"
@@ -111,8 +111,8 @@ ERROR: API validation error: Invalid API Key - Authentication failed
 
 ### 1. API Key hat Leerzeichen
 ```
-❌ "  goldapi-1bddikdsmjmvqqef-io  "
-✅ "goldapi-1bddikdsmjmvqqef-io"
+❌ "  YOUR_API_KEY_HERE  "
+✅ "YOUR_API_KEY_HERE"
 ```
 
 **Lösung:** Key ohne Leerzeichen kopieren
@@ -140,12 +140,12 @@ ERROR: API validation error: Invalid API Key - Authentication failed
 
 ```bash
 # Test mit korrektem Header (so macht es die Integration jetzt)
-curl -H "x-access-token: goldapi-1bddikdsmjmvqqef-io" \
+curl -H "x-access-token: YOUR_API_KEY_HERE" \
      -H "Content-Type: application/json" \
      https://www.goldapi.io/api/XAU/EUR
 
 # Verbose Mode (mehr Details)
-curl -v -H "x-access-token: goldapi-1bddikdsmjmvqqef-io" \
+curl -v -H "x-access-token: YOUR_API_KEY_HERE" \
      -H "Content-Type: application/json" \
      https://www.goldapi.io/api/XAU/EUR
 ```
