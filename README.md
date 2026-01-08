@@ -155,6 +155,15 @@ Um einen kostenlosen API-Schlüssel zu erhalten:
 3. Generiere einen neuen API-Schlüssel
 4. Verwende diesen Schlüssel in der Integration
 
+## ⚠️ Sicherheitshinweis
+
+**Wichtig:** Committe niemals deinen echten API-Key in Git! Der API-Key wird sicher in Home Assistant gespeichert und sollte nur dort eingegeben werden.
+
+Falls du versehentlich einen API-Key committet hast:
+1. Widerrufe den Key sofort auf https://www.goldapi.io/
+2. Generiere einen neuen Key
+3. Verwende den neuen Key in Home Assistant
+
 ## Häufig gestellte Fragen
 
 **F: Wie oft wird der Goldpreis aktualisiert?**

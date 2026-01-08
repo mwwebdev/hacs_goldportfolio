@@ -38,14 +38,14 @@ Header: Content-Type: application/json
 
 Versuche die Integration erneut hinzuzufügen mit deinem API Key:
 ```
-goldapi-1bddikdsmjmvqqef-io
+YOUR_API_KEY_HERE
 ```
 
 **Falls du testen möchtest, bevor du es in Home Assistant versuchst:**
 
 ```bash
 # Terminal/PowerShell
-curl -H "x-access-token: goldapi-1bddikdsmjmvqqef-io" \
+curl -H "x-access-token: YOUR_API_KEY_HERE" \
      -H "Content-Type: application/json" \
      https://www.goldapi.io/api/XAU/EUR
 ```
