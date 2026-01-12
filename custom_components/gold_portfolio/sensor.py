@@ -43,6 +43,16 @@ async def async_setup_entry(
         PortfolioTotalGainPercentSensor(coordinator, config_entry, portfolio_manager),
     ]
 
+    # Add sensors for each portfolio entry
+    for entry in portfolio_manager.get_entries():
+        entry_id = entry["id"]
+        entities.extend([
+            PortfolioEntryGramsSensor(coordinator, config_entry, portfolio_manager, entry_id),
+            PortfolioEntryValueSensor(coordinator, config_entry, portfolio_manager, entry_id),
+            PortfolioEntryGainSensor(coordinator, config_entry, portfolio_manager, entry_id),
+            PortfolioEntryGainPercentSensor(coordinator, config_entry, portfolio_manager, entry_id),
+        ])
+
     async_add_entities(entities)
 
     # Store portfolio manager in hass.data
@@ -216,4 +226,133 @@ class PortfolioTotalGainPercentSensor(CoordinatorEntity, SensorEntity):
             price_per_gram = self.coordinator.data.get("price", 0) / TROY_OZ_TO_GRAM
             portfolio_value = self._portfolio_manager.calculate_portfolio_value(price_per_gram)
             return portfolio_value.get("gain_percent")
+        return None
+
+class PortfolioEntryGramsSensor(CoordinatorEntity, SensorEntity):
+    """Sensor for grams of a specific portfolio entry."""
+
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_native_unit_of_measurement = "g"
+    _attr_icon = "mdi:scale"
+
+    def __init__(
+        self,
+        coordinator: DataUpdateCoordinator,
+        config_entry: ConfigEntry,
+        portfolio_manager: PortfolioManager,
+        entry_id: str,
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        self._entry_id = entry_id
+        self._portfolio_manager = portfolio_manager
+        self._config_entry = config_entry
+        self._attr_name = f"Portfolio Entry {entry_id} Grams"
+        self._attr_unique_id = f"{config_entry.entry_id}_entry_{entry_id}_grams"
+
+    @property
+    def native_value(self) -> Optional[float]:
+        """Return the state of the sensor."""
+        entry = self._portfolio_manager.get_entry(self._entry_id)
+        if entry:
+            return entry.get("amount_grams")
+        return None
+
+
+class PortfolioEntryValueSensor(CoordinatorEntity, SensorEntity):
+    """Sensor for current value of a specific portfolio entry."""
+
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_native_unit_of_measurement = UnitOfPrice.EUR if UnitOfPrice else "€"
+    _attr_icon = "mdi:euro"
+
+    def __init__(
+        self,
+        coordinator: DataUpdateCoordinator,
+        config_entry: ConfigEntry,
+        portfolio_manager: PortfolioManager,
+        entry_id: str,
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        self._entry_id = entry_id
+        self._portfolio_manager = portfolio_manager
+        self._config_entry = config_entry
+        self._attr_name = f"Portfolio Entry {entry_id} Current Value"
+        self._attr_unique_id = f"{config_entry.entry_id}_entry_{entry_id}_current_value"
+
+    @property
+    def native_value(self) -> Optional[float]:
+        """Return the state of the sensor."""
+        if self.coordinator.data:
+            price_per_gram = self.coordinator.data.get("price", 0) / TROY_OZ_TO_GRAM
+            entry_value = self._portfolio_manager.calculate_entry_value(self._entry_id, price_per_gram)
+            if entry_value:
+                return entry_value.get("current_value_eur")
+        return None
+
+
+class PortfolioEntryGainSensor(CoordinatorEntity, SensorEntity):
+    """Sensor for gain (EUR) of a specific portfolio entry."""
+
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_native_unit_of_measurement = UnitOfPrice.EUR if UnitOfPrice else "€"
+    _attr_icon = "mdi:cash-multiple"
+
+    def __init__(
+        self,
+        coordinator: DataUpdateCoordinator,
+        config_entry: ConfigEntry,
+        portfolio_manager: PortfolioManager,
+        entry_id: str,
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        self._entry_id = entry_id
+        self._portfolio_manager = portfolio_manager
+        self._config_entry = config_entry
+        self._attr_name = f"Portfolio Entry {entry_id} Gain (EUR)"
+        self._attr_unique_id = f"{config_entry.entry_id}_entry_{entry_id}_gain_eur"
+
+    @property
+    def native_value(self) -> Optional[float]:
+        """Return the state of the sensor."""
+        if self.coordinator.data:
+            price_per_gram = self.coordinator.data.get("price", 0) / TROY_OZ_TO_GRAM
+            entry_value = self._portfolio_manager.calculate_entry_value(self._entry_id, price_per_gram)
+            if entry_value:
+                return entry_value.get("gain_eur")
+        return None
+
+
+class PortfolioEntryGainPercentSensor(CoordinatorEntity, SensorEntity):
+    """Sensor for gain (%) of a specific portfolio entry."""
+
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_native_unit_of_measurement = "%"
+    _attr_icon = "mdi:percent"
+
+    def __init__(
+        self,
+        coordinator: DataUpdateCoordinator,
+        config_entry: ConfigEntry,
+        portfolio_manager: PortfolioManager,
+        entry_id: str,
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        self._entry_id = entry_id
+        self._portfolio_manager = portfolio_manager
+        self._config_entry = config_entry
+        self._attr_name = f"Portfolio Entry {entry_id} Gain (%)"
+        self._attr_unique_id = f"{config_entry.entry_id}_entry_{entry_id}_gain_percent"
+
+    @property
+    def native_value(self) -> Optional[float]:
+        """Return the state of the sensor."""
+        if self.coordinator.data:
+            price_per_gram = self.coordinator.data.get("price", 0) / TROY_OZ_TO_GRAM
+            entry_value = self._portfolio_manager.calculate_entry_value(self._entry_id, price_per_gram)
+            if entry_value:
+                return entry_value.get("gain_percent")
         return None

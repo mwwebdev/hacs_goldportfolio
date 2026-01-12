@@ -7,6 +7,7 @@ import voluptuous as vol
 from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.helpers.service import async_register_admin_service
 from homeassistant.core import SupportsResponse
+from homeassistant.helpers.entity_platform import async_get_platforms
 
 from .api import GoldAPIClient
 from .const import (
@@ -21,6 +22,51 @@ from .const import (
 from .portfolio import PortfolioManager
 
 _LOGGER = logging.getLogger(__name__)
+
+
+async def _register_entry_sensors(hass: HomeAssistant, config_entry_id: str, portfolio_entry_id: str) -> None:
+    """Register new sensors for a portfolio entry."""
+    try:
+        from .sensor import (
+            PortfolioEntryGramsSensor,
+            PortfolioEntryValueSensor,
+            PortfolioEntryGainSensor,
+            PortfolioEntryGainPercentSensor,
+        )
+        
+        # Get the config entry and coordinator
+        coordinator = hass.data[DOMAIN][config_entry_id]["coordinator"]
+        portfolio_manager = hass.data[DOMAIN][config_entry_id]["portfolio_manager"]
+        
+        # Create new sensor entities
+        sensors = [
+            PortfolioEntryGramsSensor(coordinator, None, portfolio_manager, portfolio_entry_id),
+            PortfolioEntryValueSensor(coordinator, None, portfolio_manager, portfolio_entry_id),
+            PortfolioEntryGainSensor(coordinator, None, portfolio_manager, portfolio_entry_id),
+            PortfolioEntryGainPercentSensor(coordinator, None, portfolio_manager, portfolio_entry_id),
+        ]
+        
+        # Override unique_id for new sensors
+        from homeassistant.config_entries import ConfigEntry
+        config_entry = hass.config_entries.async_get_entry(config_entry_id)
+        
+        if config_entry:
+            for sensor in sensors:
+                sensor._config_entry = config_entry
+                sensor._attr_unique_id = f"{config_entry_id}_entry_{portfolio_entry_id}_{sensor._attr_unique_id.split('_')[-1]}"
+        
+        # Get the platform
+        from homeassistant.const import Platform
+        platforms = async_get_platforms(hass, DOMAIN)
+        
+        if platforms:
+            for platform in platforms:
+                if platform.domain == "sensor":
+                    await platform.async_add_entities(sensors)
+                    _LOGGER.debug(f"Registered sensors for entry {portfolio_entry_id}")
+                    return
+    except Exception as err:
+        _LOGGER.warning(f"Could not register new entry sensors: {err}")
 
 
 async def async_setup_services(hass: HomeAssistant) -> None:
@@ -65,6 +111,9 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 purchase_price_per_gram=purchase_price_per_gram,
             )
             _LOGGER.info("Added portfolio entry: %s", entry.get("id"))
+            
+            # Register new sensors for this entry
+            await _register_entry_sensors(hass, entry_id, entry.get("id"))
         except Exception as err:
             _LOGGER.error("Error adding portfolio entry: %s", err)
 

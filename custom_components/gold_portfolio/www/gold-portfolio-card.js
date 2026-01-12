@@ -281,19 +281,53 @@ class GoldPortfolioCard extends HTMLElement {
 
   _renderPortfolioEntry() {
     const entryId = this.config.entry_id;
-    const totalValueSensor = this.config.current_value_entity;
-    const gainEurSensor = this.config.gain_eur_entity;
-    const gainPercentSensor = this.config.gain_percent_entity;
+    const entryName = this.config.entry_name;
+    
+    // Build entity names based on entry_id (using Home Assistant naming convention)
+    // These would be template sensors you create in your configuration
+    const totalGramsSensor = this.config.entry_total_grams_entity || `sensor.portfolio_entry_${entryId}_grams`;
+    const currentValueSensor = this.config.entry_current_value_entity || `sensor.portfolio_entry_${entryId}_current_value`;
+    const gainEurSensor = this.config.entry_gain_eur_entity || `sensor.portfolio_entry_${entryId}_gain_eur`;
+    const gainPercentSensor = this.config.entry_gain_percent_entity || `sensor.portfolio_entry_${entryId}_gain_percent`;
 
-    const currentValue = this._getEntityState(totalValueSensor);
+    const totalGrams = this._getEntityState(totalGramsSensor);
+    const currentValue = this._getEntityState(currentValueSensor);
     const gainEur = this._getEntityState(gainEurSensor);
     const gainPercent = this._getEntityState(gainPercentSensor);
+
+    // Check if sensors exist
+    const sensorsFound = 
+      totalGrams !== "N/A" || 
+      currentValue !== "N/A" || 
+      gainEur !== "N/A" || 
+      gainPercent !== "N/A";
+
+    if (!sensorsFound) {
+      return `
+        <div style="padding: 16px;">
+          <div style="color: var(--error-color, red); margin-bottom: 12px;">
+            ⚠️ Sensoren nicht gefunden!
+          </div>
+          <div style="font-size: 12px; color: var(--secondary-text-color);">
+            Erwartet:<br>
+            • ${totalGramsSensor}<br>
+            • ${currentValueSensor}<br>
+            • ${gainEurSensor}<br>
+            • ${gainPercentSensor}<br>
+            <br>
+            Erstellen Sie diese als Template-Sensoren in Ihrer Home Assistant Konfiguration oder nutzen Sie die Service API.
+          </div>
+        </div>
+      `;
+    }
 
     const gainEurNum = parseFloat(gainEur);
     const gainClass = gainEurNum >= 0 ? "gain" : "loss";
 
+    const titleText = entryName ? `📊 ${entryName}` : `📊 Portfolio Eintrag`;
+
     return `
-      <div class="title">📊 Portfolio Eintrag</div>
+      <div class="title">${titleText}</div>
       
       <div style="padding: 12px; background: rgba(100, 100, 100, 0.2); border-radius: 8px; margin-bottom: 16px;">
         <div style="font-size: 12px; color: var(--secondary-text-color); margin-bottom: 8px;">
@@ -302,6 +336,11 @@ class GoldPortfolioCard extends HTMLElement {
       </div>
 
       <div class="stats-grid">
+        <div class="stat-item">
+          <div class="stat-label">Gesamtmenge Gold</div>
+          <div class="stat-value" data-metric="total-grams">${totalGrams} g</div>
+        </div>
+        
         <div class="stat-item">
           <div class="stat-label">Aktueller Wert</div>
           <div class="stat-value" data-metric="current-value">${currentValue} €</div>
@@ -315,11 +354,6 @@ class GoldPortfolioCard extends HTMLElement {
         <div class="stat-item">
           <div class="stat-label">Gewinn (%)</div>
           <div class="stat-value ${gainClass}" data-metric="gain-percent">${gainPercent}%</div>
-        </div>
-        
-        <div class="stat-item">
-          <div class="stat-label">Menge</div>
-          <div class="stat-value" data-metric="total-grams">N/A g</div>
         </div>
       </div>
     `;
