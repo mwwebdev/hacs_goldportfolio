@@ -248,7 +248,7 @@ class PortfolioEntryGramsSensor(CoordinatorEntity, SensorEntity):
         self._portfolio_manager = portfolio_manager
         self._config_entry = config_entry
         self._attr_name = f"Portfolio Entry {entry_id} Grams"
-        self._attr_unique_id = f"{config_entry.entry_id}_entry_{entry_id}_grams"
+        self._attr_unique_id = f"portfolio_entry_{entry_id}_grams"
 
     @property
     def native_value(self) -> Optional[float]:
@@ -279,7 +279,7 @@ class PortfolioEntryValueSensor(CoordinatorEntity, SensorEntity):
         self._portfolio_manager = portfolio_manager
         self._config_entry = config_entry
         self._attr_name = f"Portfolio Entry {entry_id} Current Value"
-        self._attr_unique_id = f"{config_entry.entry_id}_entry_{entry_id}_current_value"
+        self._attr_unique_id = f"portfolio_entry_{entry_id}_current_value"
 
     @property
     def native_value(self) -> Optional[float]:
@@ -312,7 +312,7 @@ class PortfolioEntryGainSensor(CoordinatorEntity, SensorEntity):
         self._portfolio_manager = portfolio_manager
         self._config_entry = config_entry
         self._attr_name = f"Portfolio Entry {entry_id} Gain (EUR)"
-        self._attr_unique_id = f"{config_entry.entry_id}_entry_{entry_id}_gain_eur"
+        self._attr_unique_id = f"portfolio_entry_{entry_id}_gain_eur"
 
     @property
     def native_value(self) -> Optional[float]:
@@ -345,7 +345,7 @@ class PortfolioEntryGainPercentSensor(CoordinatorEntity, SensorEntity):
         self._portfolio_manager = portfolio_manager
         self._config_entry = config_entry
         self._attr_name = f"Portfolio Entry {entry_id} Gain (%)"
-        self._attr_unique_id = f"{config_entry.entry_id}_entry_{entry_id}_gain_percent"
+        self._attr_unique_id = f"portfolio_entry_{entry_id}_gain_percent"
 
     @property
     def native_value(self) -> Optional[float]:
