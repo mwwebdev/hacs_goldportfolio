@@ -83,10 +83,26 @@ gain_percent_entity: sensor.portfolio_total_gain
 ```yaml
 type: custom:gold-portfolio-card
 card_type: portfolio-entry
-entry_id: "your_entry_id"
-current_value_entity: sensor.portfolio_current_value
-gain_eur_entity: sensor.portfolio_total_gain_eur
-gain_percent_entity: sensor.portfolio_total_gain_percent
+entry_id: "1768210120875"  # Die Portfolio-Entry ID
+entry_name: "Schmuck"  # Optional: Name zur Kategorisierung
+# Die Sensoren werden automatisch basierend auf der Entry-ID gesucht:
+# sensor.portfolio_entry_1768210120875_grams
+# sensor.portfolio_entry_1768210120875_current_value
+# sensor.portfolio_entry_1768210120875_gain_eur
+# sensor.portfolio_entry_1768210120875_gain_percent
+```
+
+Alternativ können Sie auch manuelle Entity-IDs angeben:
+
+```yaml
+type: custom:gold-portfolio-card
+card_type: portfolio-entry
+entry_id: "1768210120875"
+entry_name: "Schmuck"
+entry_total_grams_entity: sensor.portfolio_entry_1768210120875_grams
+entry_current_value_entity: sensor.portfolio_entry_1768210120875_current_value
+entry_gain_eur_entity: sensor.portfolio_entry_1768210120875_gain_eur
+entry_gain_percent_entity: sensor.portfolio_entry_1768210120875_gain_percent
 ```
 
 ## Services

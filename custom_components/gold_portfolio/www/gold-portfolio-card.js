@@ -329,12 +329,6 @@ class GoldPortfolioCard extends HTMLElement {
     return `
       <div class="title">${titleText}</div>
       
-      <div style="padding: 12px; background: rgba(100, 100, 100, 0.2); border-radius: 8px; margin-bottom: 16px;">
-        <div style="font-size: 12px; color: var(--secondary-text-color); margin-bottom: 8px;">
-          Eintrag-ID: ${entryId || "Nicht konfiguriert"}
-        </div>
-      </div>
-
       <div class="stats-grid">
         <div class="stat-item">
           <div class="stat-label">Gesamtmenge Gold</div>
