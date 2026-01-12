@@ -65,19 +65,20 @@ class GoldPortfolioCard extends HTMLElement {
   }
 
   _update() {
-    // Just update the TEXT CONTENT of existing elements, don't recreate DOM!
     const totalGramsEl = this._root.querySelector('[data-metric="total-grams"]');
     const currentValueEl = this._root.querySelector('[data-metric="current-value"]');
     const gainEurEl = this._root.querySelector('[data-metric="gain-eur"]');
     const gainPercentEl = this._root.querySelector('[data-metric="gain-percent"]');
 
-    if (totalGramsEl) totalGramsEl.textContent = this._getEntityState(this.config.total_grams_entity) + ' g';
-    if (currentValueEl) currentValueEl.textContent = this._getEntityState(this.config.current_value_entity) + ' €';
-    if (gainEurEl) gainEurEl.textContent = this._getEntityState(this.config.gain_eur_entity) + ' €';
-    if (gainPercentEl) gainPercentEl.textContent = this._getEntityState(this.config.gain_percent_entity) + '%';
+    const values = this._getCurrentValues();
+    
+    if (totalGramsEl) totalGramsEl.textContent = (values.totalGrams || 'N/A') + ' g';
+    if (currentValueEl) currentValueEl.textContent = (values.currentValue || 'N/A') + ' €';
+    if (gainEurEl) gainEurEl.textContent = (values.gainEur || 'N/A') + ' €';
+    if (gainPercentEl) gainPercentEl.textContent = (values.gainPercent || 'N/A') + '%';
 
     // Update color classes
-    const gainEurNum = parseFloat(this._getEntityState(this.config.gain_eur_entity));
+    const gainEurNum = parseFloat(values.gainEur);
     const gainClass = gainEurNum >= 0 ? 'gain' : 'loss';
     
     if (gainEurEl) {
