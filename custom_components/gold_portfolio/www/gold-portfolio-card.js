@@ -9,15 +9,21 @@ class GoldPortfolioCard extends HTMLElement {
   set hass(hass) {
     this.hassObj = hass;
     
+    // First time setup
+    if (!this._initialized && this.config) {
+      this._previousValues = this._getCurrentValues();
+      this.render();
+      this._initialized = true;
+    }
     // Only update if values changed
-    if (this._shouldUpdate()) {
+    else if (this._initialized && this._shouldUpdate()) {
       this._update();
     }
   }
 
   _shouldUpdate() {
     if (!this.hassObj || !this.config || !this._initialized) {
-      return true;
+      return false;
     }
 
     const currentValues = this._getCurrentValues();
@@ -42,30 +48,26 @@ class GoldPortfolioCard extends HTMLElement {
   }
 
   _update() {
-    if (!this._root) {
-      this.render();
-    } else {
-      // Just update the TEXT CONTENT of existing elements, don't recreate DOM!
-      const totalGramsEl = this._root.querySelector('[data-metric="total-grams"]');
-      const currentValueEl = this._root.querySelector('[data-metric="current-value"]');
-      const gainEurEl = this._root.querySelector('[data-metric="gain-eur"]');
-      const gainPercentEl = this._root.querySelector('[data-metric="gain-percent"]');
+    // Just update the TEXT CONTENT of existing elements, don't recreate DOM!
+    const totalGramsEl = this._root.querySelector('[data-metric="total-grams"]');
+    const currentValueEl = this._root.querySelector('[data-metric="current-value"]');
+    const gainEurEl = this._root.querySelector('[data-metric="gain-eur"]');
+    const gainPercentEl = this._root.querySelector('[data-metric="gain-percent"]');
 
-      if (totalGramsEl) totalGramsEl.textContent = this._getEntityState(this.config.total_grams_entity) + ' g';
-      if (currentValueEl) currentValueEl.textContent = this._getEntityState(this.config.current_value_entity) + ' €';
-      if (gainEurEl) gainEurEl.textContent = this._getEntityState(this.config.gain_eur_entity) + ' €';
-      if (gainPercentEl) gainPercentEl.textContent = this._getEntityState(this.config.gain_percent_entity) + '%';
+    if (totalGramsEl) totalGramsEl.textContent = this._getEntityState(this.config.total_grams_entity) + ' g';
+    if (currentValueEl) currentValueEl.textContent = this._getEntityState(this.config.current_value_entity) + ' €';
+    if (gainEurEl) gainEurEl.textContent = this._getEntityState(this.config.gain_eur_entity) + ' €';
+    if (gainPercentEl) gainPercentEl.textContent = this._getEntityState(this.config.gain_percent_entity) + '%';
 
-      // Update color classes
-      const gainEurNum = parseFloat(this._getEntityState(this.config.gain_eur_entity));
-      const gainClass = gainEurNum >= 0 ? 'gain' : 'loss';
-      
-      if (gainEurEl) {
-        gainEurEl.className = 'stat-value ' + gainClass;
-      }
-      if (gainPercentEl) {
-        gainPercentEl.className = 'stat-value ' + gainClass;
-      }
+    // Update color classes
+    const gainEurNum = parseFloat(this._getEntityState(this.config.gain_eur_entity));
+    const gainClass = gainEurNum >= 0 ? 'gain' : 'loss';
+    
+    if (gainEurEl) {
+      gainEurEl.className = 'stat-value ' + gainClass;
+    }
+    if (gainPercentEl) {
+      gainPercentEl.className = 'stat-value ' + gainClass;
     }
   }
 
@@ -128,7 +130,7 @@ class GoldPortfolioCard extends HTMLElement {
 
         .stat-item {
           padding: 12px;
-          background: rgba(var(--rgb-primary-color), 0.15);
+          background: rgba(100, 100, 100, 0.3);
           border-radius: 8px;
           border-left: 4px solid var(--primary-color);
         }
@@ -169,7 +171,7 @@ class GoldPortfolioCard extends HTMLElement {
 
         .entry-item {
           padding: 12px;
-          background: rgba(var(--rgb-primary-color), 0.1);
+          background: rgba(100, 100, 100, 0.2);
           border-radius: 4px;
           margin-bottom: 8px;
           cursor: pointer;
@@ -177,7 +179,7 @@ class GoldPortfolioCard extends HTMLElement {
         }
 
         .entry-item:hover {
-          background-color: rgba(var(--rgb-primary-color), 0.2);
+          background-color: rgba(100, 100, 100, 0.4);
         }
 
         .entry-date {
@@ -194,7 +196,7 @@ class GoldPortfolioCard extends HTMLElement {
 
         .chart-container {
           margin-top: 16px;
-          background: rgba(var(--rgb-primary-color), 0.1);
+          background: rgba(100, 100, 100, 0.2);
           padding: 12px;
           border-radius: 8px;
         }
@@ -212,8 +214,6 @@ class GoldPortfolioCard extends HTMLElement {
     const card = document.createElement("ha-card");
     card.innerHTML = this._renderContent();
     this._root.appendChild(card);
-    
-    this._initialized = true;
   }
 
   _renderContent() {
@@ -253,7 +253,7 @@ class GoldPortfolioCard extends HTMLElement {
     const gainClass = gainEurNum >= 0 ? "gain" : "loss";
 
     return `
-      <div class="title">💰 Mein Gold Portfolio</div>
+      <div class="title">Total Gold Portfolio</div>
       
       <div class="stats-grid">
         <div class="stat-item">
@@ -285,19 +285,9 @@ class GoldPortfolioCard extends HTMLElement {
     const gainEurSensor = this.config.gain_eur_entity;
     const gainPercentSensor = this.config.gain_percent_entity;
 
-    const getEntityState = (entityId) => {
-      const entity = this.hassObj?.states[entityId];
-      return entity ? entity.state : "N/A";
-    };
-
-    const getEntityAttribute = (entityId, attr) => {
-      const entity = this.hassObj?.states[entityId];
-      return entity?.attributes?.[attr] || "N/A";
-    };
-
-    const currentValue = getEntityState(totalValueSensor);
-    const gainEur = getEntityState(gainEurSensor);
-    const gainPercent = getEntityState(gainPercentSensor);
+    const currentValue = this._getEntityState(totalValueSensor);
+    const gainEur = this._getEntityState(gainEurSensor);
+    const gainPercent = this._getEntityState(gainPercentSensor);
 
     const gainEurNum = parseFloat(gainEur);
     const gainClass = gainEurNum >= 0 ? "gain" : "loss";
@@ -305,36 +295,31 @@ class GoldPortfolioCard extends HTMLElement {
     return `
       <div class="title">📊 Portfolio Eintrag</div>
       
-      <div style="padding: 12px; background: var(--background-color, #f5f5f5); border-radius: 8px; margin-bottom: 16px;">
+      <div style="padding: 12px; background: rgba(100, 100, 100, 0.2); border-radius: 8px; margin-bottom: 16px;">
         <div style="font-size: 12px; color: var(--secondary-text-color); margin-bottom: 8px;">
           Eintrag-ID: ${entryId || "Nicht konfiguriert"}
         </div>
-        ${entryId ? `
-          <div style="font-size: 12px; color: var(--secondary-text-color);">
-            Kaufdatum: ${getEntityAttribute(totalValueSensor, "purchase_date") || "N/A"}
-          </div>
-        ` : ""}
       </div>
 
       <div class="stats-grid">
         <div class="stat-item">
           <div class="stat-label">Aktueller Wert</div>
-          <div class="stat-value">${currentValue} €</div>
+          <div class="stat-value" data-metric="current-value">${currentValue} €</div>
         </div>
         
         <div class="stat-item">
           <div class="stat-label">Gewinn (EUR)</div>
-          <div class="stat-value ${gainClass}">${gainEur} €</div>
+          <div class="stat-value ${gainClass}" data-metric="gain-eur">${gainEur} €</div>
         </div>
         
         <div class="stat-item">
           <div class="stat-label">Gewinn (%)</div>
-          <div class="stat-value ${gainClass}">${gainPercent}%</div>
+          <div class="stat-value ${gainClass}" data-metric="gain-percent">${gainPercent}%</div>
         </div>
         
         <div class="stat-item">
           <div class="stat-label">Menge</div>
-          <div class="stat-value">${getEntityAttribute(totalValueSensor, "total_grams")} g</div>
+          <div class="stat-value" data-metric="total-grams">N/A g</div>
         </div>
       </div>
     `;
