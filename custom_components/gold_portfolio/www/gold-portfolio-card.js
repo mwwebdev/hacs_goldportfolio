@@ -37,14 +37,31 @@ class GoldPortfolioCard extends HTMLElement {
   }
 
   _getCurrentValues() {
-    const { total_grams_entity, current_value_entity, gain_eur_entity, gain_percent_entity } = this.config;
+    if (this.config.card_type === "portfolio-total") {
+      const { total_grams_entity, current_value_entity, gain_eur_entity, gain_percent_entity } = this.config;
+      
+      return {
+        totalGrams: this.hassObj?.states[total_grams_entity]?.state,
+        currentValue: this.hassObj?.states[current_value_entity]?.state,
+        gainEur: this.hassObj?.states[gain_eur_entity]?.state,
+        gainPercent: this.hassObj?.states[gain_percent_entity]?.state,
+      };
+    } else if (this.config.card_type === "portfolio-entry") {
+      const entryId = this.config.entry_id;
+      const totalGramsSensor = this.config.entry_total_grams_entity || `sensor.portfolio_entry_${entryId}_grams`;
+      const currentValueSensor = this.config.entry_current_value_entity || `sensor.portfolio_entry_${entryId}_current_value`;
+      const gainEurSensor = this.config.entry_gain_eur_entity || `sensor.portfolio_entry_${entryId}_gain_eur`;
+      const gainPercentSensor = this.config.entry_gain_percent_entity || `sensor.portfolio_entry_${entryId}_gain_percent`;
+
+      return {
+        totalGrams: this.hassObj?.states[totalGramsSensor]?.state,
+        currentValue: this.hassObj?.states[currentValueSensor]?.state,
+        gainEur: this.hassObj?.states[gainEurSensor]?.state,
+        gainPercent: this.hassObj?.states[gainPercentSensor]?.state,
+      };
+    }
     
-    return {
-      totalGrams: this.hassObj?.states[total_grams_entity]?.state,
-      currentValue: this.hassObj?.states[current_value_entity]?.state,
-      gainEur: this.hassObj?.states[gain_eur_entity]?.state,
-      gainPercent: this.hassObj?.states[gain_percent_entity]?.state,
-    };
+    return {};
   }
 
   _update() {
