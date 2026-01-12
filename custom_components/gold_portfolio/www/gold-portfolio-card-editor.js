@@ -39,9 +39,9 @@ class GoldPortfolioCardEditor extends HTMLElement {
       </style>
       <div>
         <label>Kartentyp:</label>
-        <select id="card_type" value="${cardType}">
-          <option value="portfolio-total">Gesamtes Portfolio</option>
-          <option value="portfolio-entry">Portfolio Eintrag</option>
+        <select id="card_type">
+          <option value="portfolio-total" ${cardType === "portfolio-total" ? "selected" : ""}>Gesamtes Portfolio</option>
+          <option value="portfolio-entry" ${cardType === "portfolio-entry" ? "selected" : ""}>Portfolio Eintrag</option>
         </select>
       </div>
     `;
@@ -51,27 +51,19 @@ class GoldPortfolioCardEditor extends HTMLElement {
         <div class="section">
           <div>
             <label>Entity für Gesamtmenge (Gramm):</label>
-            <input type="text" id="total_grams_entity" value="${
-              this.config.total_grams_entity || ""
-            }" />
+            <input type="text" id="total_grams_entity" value="${this.config.total_grams_entity || ""}" />
           </div>
           <div>
             <label>Entity für aktuellen Wert:</label>
-            <input type="text" id="current_value_entity" value="${
-              this.config.current_value_entity || ""
-            }" />
+            <input type="text" id="current_value_entity" value="${this.config.current_value_entity || ""}" />
           </div>
           <div>
             <label>Entity für Gewinn (EUR):</label>
-            <input type="text" id="gain_eur_entity" value="${
-              this.config.gain_eur_entity || ""
-            }" />
+            <input type="text" id="gain_eur_entity" value="${this.config.gain_eur_entity || ""}" />
           </div>
           <div>
             <label>Entity für Gewinn (%):</label>
-            <input type="text" id="gain_percent_entity" value="${
-              this.config.gain_percent_entity || ""
-            }" />
+            <input type="text" id="gain_percent_entity" value="${this.config.gain_percent_entity || ""}" />
           </div>
         </div>
       `;
@@ -86,60 +78,86 @@ class GoldPortfolioCardEditor extends HTMLElement {
             <label>Name des Eintrags (optional):</label>
             <input type="text" id="entry_name" placeholder="z.B. Schmuck" value="${this.config.entry_name || ""}" />
           </div>
-          <p style="font-size: 12px; color: var(--secondary-text-color);">
-            Die Sensoren werden automatisch gesucht:<br>
-            • sensor.portfolio_entry_[ID]_grams<br>
-            • sensor.portfolio_entry_[ID]_current_value<br>
-            • sensor.portfolio_entry_[ID]_gain_eur<br>
-            • sensor.portfolio_entry_[ID]_gain_percent
+          <p style="font-size: 12px; color: var(--secondary-text-color); margin-top: 12px;">
+            <strong>Hinweis:</strong> Die Sensoren werden automatisch gesucht basierend auf der Eintrag-ID.
           </p>
         </div>
       `;
     }
 
     root.innerHTML = html;
+    this.attachEventListeners(cardType);
+  }
 
-    root.querySelector("#card_type").addEventListener("change", (e) => {
-      this.config.card_type = e.target.value;
-      this._fireConfigChanged();
-      this.render();
-    });
+  attachEventListeners(cardType) {
+    const root = this.shadowRoot;
+
+    const cardTypeSelect = root.querySelector("#card_type");
+    if (cardTypeSelect) {
+      cardTypeSelect.addEventListener("change", (e) => {
+        this.config.card_type = e.target.value;
+        this._fireConfigChanged();
+        this.render();
+      });
+    }
 
     if (cardType === "portfolio-total") {
-      root.querySelector("#total_grams_entity").addEventListener("change", (e) => {
-        this.config.total_grams_entity = e.target.value;
-        this._fireConfigChanged();
-      });
+      const totalGramsInput = root.querySelector("#total_grams_entity");
+      const currentValueInput = root.querySelector("#current_value_entity");
+      const gainEurInput = root.querySelector("#gain_eur_entity");
+      const gainPercentInput = root.querySelector("#gain_percent_entity");
 
-      root.querySelector("#current_value_entity").addEventListener("change", (e) => {
-        this.config.current_value_entity = e.target.value;
-        this._fireConfigChanged();
-      });
-
-      root.querySelector("#gain_eur_entity").addEventListener("change", (e) => {
-        this.config.gain_eur_entity = e.target.value;
-        this._fireConfigChanged();
-      });
-
-      root.querySelector("#gain_percent_entity").addEventListener("change", (e) => {
-        this.config.gain_percent_entity = e.target.value;
-        this._fireConfigChanged();
-      });
+      if (totalGramsInput) {
+        totalGramsInput.addEventListener("change", (e) => {
+          this.config.total_grams_entity = e.target.value;
+          this._fireConfigChanged();
+        });
+      }
+      if (currentValueInput) {
+        currentValueInput.addEventListener("change", (e) => {
+          this.config.current_value_entity = e.target.value;
+          this._fireConfigChanged();
+        });
+      }
+      if (gainEurInput) {
+        gainEurInput.addEventListener("change", (e) => {
+          this.config.gain_eur_entity = e.target.value;
+          this._fireConfigChanged();
+        });
+      }
+      if (gainPercentInput) {
+        gainPercentInput.addEventListener("change", (e) => {
+          this.config.gain_percent_entity = e.target.value;
+          this._fireConfigChanged();
+        });
+      }
     } else {
-      root.querySelector("#entry_id").addEventListener("change", (e) => {
-        this.config.entry_id = e.target.value;
-        this._fireConfigChanged();
-      });
+      const entryIdInput = root.querySelector("#entry_id");
+      const entryNameInput = root.querySelector("#entry_name");
 
-      root.querySelector("#entry_name").addEventListener("change", (e) => {
-        this.config.entry_name = e.target.value;
-        this._fireConfigChanged();
-      });
+      if (entryIdInput) {
+        entryIdInput.addEventListener("change", (e) => {
+          this.config.entry_id = e.target.value;
+          this._fireConfigChanged();
+        });
+      }
+      if (entryNameInput) {
+        entryNameInput.addEventListener("change", (e) => {
+          this.config.entry_name = e.target.value;
+          this._fireConfigChanged();
+        });
+      }
     }
   }
 
   _fireConfigChanged() {
-    this.dispatchEvent(new CustomEvent("config-changed", { detail: { config: this.config } }));
+    this.dispatchEvent(
+      new CustomEvent("config-changed", {
+        detail: { config: this.config },
+        bubbles: true,
+        composed: true,
+      })
+    );
   }
 }
 
