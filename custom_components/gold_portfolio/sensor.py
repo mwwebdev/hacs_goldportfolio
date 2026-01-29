@@ -44,8 +44,10 @@ async def async_setup_entry(
     ]
 
     # Add sensors for each portfolio entry
+    _LOGGER.info("Creating sensors for %d portfolio entries", len(portfolio_manager.get_entries()))
     for entry in portfolio_manager.get_entries():
         entry_id = entry["id"]
+        _LOGGER.info("Creating sensors for portfolio entry: %s", entry_id)
         entities.extend([
             PortfolioEntryGramsSensor(coordinator, config_entry, portfolio_manager, entry_id),
             PortfolioEntryValueSensor(coordinator, config_entry, portfolio_manager, entry_id),

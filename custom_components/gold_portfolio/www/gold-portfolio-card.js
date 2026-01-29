@@ -49,10 +49,10 @@ class GoldPortfolioCard extends HTMLElement {
       };
     } else if (this.config.card_type === "portfolio-entry") {
       const entryId = this.config.entry_id;
-      const totalGramsSensor = this.config.entry_total_grams_entity || `sensor.portfolio_entry_${entryId}_grams`;
-      const currentValueSensor = this.config.entry_current_value_entity || `sensor.portfolio_entry_${entryId}_current_value`;
-      const gainEurSensor = this.config.entry_gain_eur_entity || `sensor.portfolio_entry_${entryId}_gain_eur`;
-      const gainPercentSensor = this.config.entry_gain_percent_entity || `sensor.portfolio_entry_${entryId}_gain_percent`;
+      const totalGramsSensor = this.config.entry_total_grams_entity || this._findSensorByPattern(entryId, 'grams') || `sensor.portfolio_entry_${entryId}_grams`;
+      const currentValueSensor = this.config.entry_current_value_entity || this._findSensorByPattern(entryId, 'current_value') || `sensor.portfolio_entry_${entryId}_current_value`;
+      const gainEurSensor = this.config.entry_gain_eur_entity || this._findSensorByPattern(entryId, 'gain_eur') || `sensor.portfolio_entry_${entryId}_gain_eur`;
+      const gainPercentSensor = this.config.entry_gain_percent_entity || this._findSensorByPattern(entryId, 'gain_percent') || `sensor.portfolio_entry_${entryId}_gain_percent`;
 
       return {
         totalGrams: this.hassObj?.states[totalGramsSensor]?.state,
@@ -101,6 +101,48 @@ class GoldPortfolioCard extends HTMLElement {
     if (!entityId) return "N/A";
     const entity = this.hassObj?.states[entityId];
     return entity?.state || "N/A";
+  }
+
+  _findSensorByPattern(entryId, metricType) {
+    // Try to find a sensor that matches the entry_id and metric type
+    // This handles cases where HA generates different entity_id formats
+    if (!this.hassObj?.states) return null;
+
+    const patterns = [
+      `sensor.portfolio_entry_${entryId}_${metricType}`,
+      `sensor.gold_portfolio_portfolio_entry_${entryId}_${metricType}`,
+      `sensor.portfolio_entry_${entryId}_${metricType.replace('_', '')}`,
+    ];
+
+    // First try exact matches
+    for (const pattern of patterns) {
+      if (this.hassObj.states[pattern]) {
+        return pattern;
+      }
+    }
+
+    // Then try fuzzy matching - find any sensor containing both entry_id and metric
+    const allSensors = Object.keys(this.hassObj.states);
+    const metricKeywords = {
+      'grams': ['grams', 'gram', 'menge'],
+      'current_value': ['current_value', 'value', 'wert'],
+      'gain_eur': ['gain_eur', 'gain_euro', 'gewinn_eur'],
+      'gain_percent': ['gain_percent', 'percent', 'prozent'],
+    };
+
+    const keywords = metricKeywords[metricType] || [metricType];
+
+    for (const sensor of allSensors) {
+      if (sensor.includes(entryId)) {
+        for (const keyword of keywords) {
+          if (sensor.toLowerCase().includes(keyword)) {
+            return sensor;
+          }
+        }
+      }
+    }
+
+    return null;
   }
 
   setConfig(config) {
@@ -369,14 +411,15 @@ class GoldPortfolioCard extends HTMLElement {
     const entryId = this.config.entry_id;
     const entryName = this.config.entry_name;
 
-    // Build entity names based on entry_id (using Home Assistant naming convention)
-    const totalGramsSensor = this.config.entry_total_grams_entity || `sensor.portfolio_entry_${entryId}_grams`;
-    const currentValueSensor = this.config.entry_current_value_entity || `sensor.portfolio_entry_${entryId}_current_value`;
-    const gainEurSensor = this.config.entry_gain_eur_entity || `sensor.portfolio_entry_${entryId}_gain_eur`;
-    const gainPercentSensor = this.config.entry_gain_percent_entity || `sensor.portfolio_entry_${entryId}_gain_percent`;
+    // Try to find sensors - first use config overrides, then auto-detect
+    const totalGramsSensor = this.config.entry_total_grams_entity || this._findSensorByPattern(entryId, 'grams') || `sensor.portfolio_entry_${entryId}_grams`;
+    const currentValueSensor = this.config.entry_current_value_entity || this._findSensorByPattern(entryId, 'current_value') || `sensor.portfolio_entry_${entryId}_current_value`;
+    const gainEurSensor = this.config.entry_gain_eur_entity || this._findSensorByPattern(entryId, 'gain_eur') || `sensor.portfolio_entry_${entryId}_gain_eur`;
+    const gainPercentSensor = this.config.entry_gain_percent_entity || this._findSensorByPattern(entryId, 'gain_percent') || `sensor.portfolio_entry_${entryId}_gain_percent`;
 
-    // Debug: Log available sensors
-    console.log('[Gold Portfolio Card] Looking for sensors:', {
+    // Debug: Log sensor discovery
+    console.log('[Gold Portfolio Card] Entry ID:', entryId);
+    console.log('[Gold Portfolio Card] Found sensors:', {
       totalGramsSensor,
       currentValueSensor,
       gainEurSensor,
@@ -385,8 +428,10 @@ class GoldPortfolioCard extends HTMLElement {
 
     // Debug: Log all available portfolio-related sensors
     if (this.hassObj?.states) {
-      const portfolioSensors = Object.keys(this.hassObj.states).filter(k => k.includes('portfolio'));
-      console.log('[Gold Portfolio Card] Available portfolio sensors:', portfolioSensors);
+      const portfolioSensors = Object.keys(this.hassObj.states).filter(k =>
+        k.includes('portfolio') || k.includes('gold')
+      );
+      console.log('[Gold Portfolio Card] Available portfolio/gold sensors:', portfolioSensors);
     }
 
     const totalGrams = this._getEntityState(totalGramsSensor);
@@ -402,10 +447,14 @@ class GoldPortfolioCard extends HTMLElement {
       gainPercent !== "N/A";
 
     if (!sensorsFound) {
-      // Find available portfolio entry sensors for suggestion
+      // Find available portfolio/gold sensors for suggestion
       let availableSensors = [];
+      let sensorsWithEntryId = [];
       if (this.hassObj?.states) {
-        availableSensors = Object.keys(this.hassObj.states).filter(k => k.includes('portfolio_entry'));
+        availableSensors = Object.keys(this.hassObj.states).filter(k =>
+          k.includes('portfolio') || k.includes('gold')
+        );
+        sensorsWithEntryId = availableSensors.filter(k => k.includes(entryId));
       }
 
       return `
@@ -414,14 +463,19 @@ class GoldPortfolioCard extends HTMLElement {
             ⚠️ Sensoren nicht gefunden!
           </div>
           <div style="font-size: 12px; color: var(--secondary-text-color);">
-            Gesucht:<br>
+            <strong>Entry-ID:</strong> ${entryId}<br><br>
+            <strong>Gesucht:</strong><br>
             • ${totalGramsSensor}<br>
             • ${currentValueSensor}<br>
             • ${gainEurSensor}<br>
             • ${gainPercentSensor}<br>
             <br>
-            ${availableSensors.length > 0 ? `<strong>Verfügbare Portfolio-Sensoren:</strong><br>${availableSensors.map(s => '• ' + s).join('<br>')}<br><br>` : ''}
-            <strong>Tipp:</strong> Die Sensoren werden erst nach einem Reload der Integration erstellt.<br>
+            ${sensorsWithEntryId.length > 0 ?
+              `<strong>Sensoren mit dieser Entry-ID gefunden:</strong><br>${sensorsWithEntryId.map(s => '• ' + s).join('<br>')}<br><br>` :
+              (availableSensors.length > 0 ?
+                `<strong>Verfügbare Portfolio/Gold-Sensoren:</strong><br>${availableSensors.slice(0, 10).map(s => '• ' + s).join('<br>')}${availableSensors.length > 10 ? '<br>• ...' : ''}<br><br>` :
+                '<strong>Keine Portfolio-Sensoren gefunden!</strong><br><br>')}
+            <strong>Tipp:</strong> Integration neu laden:<br>
             Einstellungen → Geräte & Dienste → Gold Portfolio → ⋮ → Neu laden
           </div>
         </div>
