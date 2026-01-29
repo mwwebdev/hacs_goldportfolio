@@ -4,6 +4,7 @@ class GoldPortfolioCard extends HTMLElement {
     this._root = null;
     this._previousValues = {};
     this._initialized = false;
+    this._hideEuroValues = false;
   }
 
   set hass(hass) {
@@ -91,6 +92,11 @@ class GoldPortfolioCard extends HTMLElement {
     }
   }
 
+  _toggleEuroVisibility() {
+    this._hideEuroValues = !this._hideEuroValues;
+    this.render();
+  }
+
   _getEntityState(entityId) {
     if (!entityId) return "N/A";
     const entity = this.hassObj?.states[entityId];
@@ -146,7 +152,6 @@ class GoldPortfolioCard extends HTMLElement {
         .title {
           font-size: 24px;
           font-weight: bold;
-          margin-bottom: 16px;
           color: var(--text-color);
         }
 
@@ -230,6 +235,36 @@ class GoldPortfolioCard extends HTMLElement {
           border-radius: 8px;
         }
 
+        .header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 16px;
+        }
+
+        .title {
+          margin-bottom: 0;
+        }
+
+        .toggle-btn {
+          background: rgba(100, 100, 100, 0.3);
+          border: none;
+          border-radius: 4px;
+          padding: 6px 10px;
+          cursor: pointer;
+          color: var(--text-color);
+          font-size: 12px;
+          transition: background 0.2s;
+        }
+
+        .toggle-btn:hover {
+          background: rgba(100, 100, 100, 0.5);
+        }
+
+        .toggle-btn.active {
+          background: var(--primary-color);
+        }
+
         @media (max-width: 600px) {
           .stats-grid {
             grid-template-columns: 1fr;
@@ -243,6 +278,12 @@ class GoldPortfolioCard extends HTMLElement {
     const card = document.createElement("ha-card");
     card.innerHTML = this._renderContent();
     this._root.appendChild(card);
+
+    // Attach event listener for toggle button
+    const toggleBtn = this._root.querySelector('#toggle-euro');
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', () => this._toggleEuroVisibility());
+    }
   }
 
   _renderContent() {
@@ -262,7 +303,6 @@ class GoldPortfolioCard extends HTMLElement {
     const currentValueSensor = this.config.current_value_entity;
     const gainEurSensor = this.config.gain_eur_entity;
     const gainPercentSensor = this.config.gain_percent_entity;
-    const hideEuroValues = this.config.hide_euro_values || false;
 
     // Check if all required entities are configured
     if (!totalGramsSensor || !currentValueSensor || !gainEurSensor || !gainPercentSensor) {
@@ -280,7 +320,9 @@ class GoldPortfolioCard extends HTMLElement {
     const gainPercent = this._getEntityState(gainPercentSensor);
 
     const gainEurNum = parseFloat(gainEur);
-    const gainClass = gainEurNum >= 0 ? "gain" : "loss";
+    const gainPercentNum = parseFloat(gainPercent);
+    const gainClass = (!isNaN(gainEurNum) ? gainEurNum : gainPercentNum) >= 0 ? "gain" : "loss";
+    const toggleBtnClass = this._hideEuroValues ? "toggle-btn active" : "toggle-btn";
 
     // Build stats items based on hide_euro_values setting
     let statsHtml = `
@@ -290,7 +332,7 @@ class GoldPortfolioCard extends HTMLElement {
       </div>
     `;
 
-    if (!hideEuroValues) {
+    if (!this._hideEuroValues) {
       statsHtml += `
         <div class="stat-item">
           <div class="stat-label">Aktueller Wert</div>
@@ -312,7 +354,10 @@ class GoldPortfolioCard extends HTMLElement {
     `;
 
     return `
-      <div class="title">Total Gold Portfolio</div>
+      <div class="header">
+        <div class="title">Gold Portfolio</div>
+        <button class="${toggleBtnClass}" id="toggle-euro">€ ${this._hideEuroValues ? 'zeigen' : 'ausblenden'}</button>
+      </div>
 
       <div class="stats-grid">
         ${statsHtml}
@@ -323,14 +368,26 @@ class GoldPortfolioCard extends HTMLElement {
   _renderPortfolioEntry() {
     const entryId = this.config.entry_id;
     const entryName = this.config.entry_name;
-    const hideEuroValues = this.config.hide_euro_values || false;
 
     // Build entity names based on entry_id (using Home Assistant naming convention)
-    // These would be template sensors you create in your configuration
     const totalGramsSensor = this.config.entry_total_grams_entity || `sensor.portfolio_entry_${entryId}_grams`;
     const currentValueSensor = this.config.entry_current_value_entity || `sensor.portfolio_entry_${entryId}_current_value`;
     const gainEurSensor = this.config.entry_gain_eur_entity || `sensor.portfolio_entry_${entryId}_gain_eur`;
     const gainPercentSensor = this.config.entry_gain_percent_entity || `sensor.portfolio_entry_${entryId}_gain_percent`;
+
+    // Debug: Log available sensors
+    console.log('[Gold Portfolio Card] Looking for sensors:', {
+      totalGramsSensor,
+      currentValueSensor,
+      gainEurSensor,
+      gainPercentSensor
+    });
+
+    // Debug: Log all available portfolio-related sensors
+    if (this.hassObj?.states) {
+      const portfolioSensors = Object.keys(this.hassObj.states).filter(k => k.includes('portfolio'));
+      console.log('[Gold Portfolio Card] Available portfolio sensors:', portfolioSensors);
+    }
 
     const totalGrams = this._getEntityState(totalGramsSensor);
     const currentValue = this._getEntityState(currentValueSensor);
@@ -345,29 +402,38 @@ class GoldPortfolioCard extends HTMLElement {
       gainPercent !== "N/A";
 
     if (!sensorsFound) {
+      // Find available portfolio entry sensors for suggestion
+      let availableSensors = [];
+      if (this.hassObj?.states) {
+        availableSensors = Object.keys(this.hassObj.states).filter(k => k.includes('portfolio_entry'));
+      }
+
       return `
         <div style="padding: 16px;">
           <div style="color: var(--error-color, red); margin-bottom: 12px;">
             ⚠️ Sensoren nicht gefunden!
           </div>
           <div style="font-size: 12px; color: var(--secondary-text-color);">
-            Erwartet:<br>
+            Gesucht:<br>
             • ${totalGramsSensor}<br>
             • ${currentValueSensor}<br>
             • ${gainEurSensor}<br>
             • ${gainPercentSensor}<br>
             <br>
-            <strong>Tipp:</strong> Die Sensoren werden erst nach dem Hinzufügen eines Eintrags und einem Reload der Integration erstellt.<br>
-            Gehen Sie zu Einstellungen → Geräte & Dienste → Gold Portfolio → "Neu laden".
+            ${availableSensors.length > 0 ? `<strong>Verfügbare Portfolio-Sensoren:</strong><br>${availableSensors.map(s => '• ' + s).join('<br>')}<br><br>` : ''}
+            <strong>Tipp:</strong> Die Sensoren werden erst nach einem Reload der Integration erstellt.<br>
+            Einstellungen → Geräte & Dienste → Gold Portfolio → ⋮ → Neu laden
           </div>
         </div>
       `;
     }
 
     const gainEurNum = parseFloat(gainEur);
-    const gainClass = gainEurNum >= 0 ? "gain" : "loss";
+    const gainPercentNum = parseFloat(gainPercent);
+    const gainClass = (!isNaN(gainEurNum) ? gainEurNum : gainPercentNum) >= 0 ? "gain" : "loss";
 
-    const titleText = entryName ? `📊 ${entryName}` : `📊 Portfolio Eintrag`;
+    const titleText = entryName || "Portfolio Eintrag";
+    const toggleBtnClass = this._hideEuroValues ? "toggle-btn active" : "toggle-btn";
 
     // Build stats items based on hide_euro_values setting
     let statsHtml = `
@@ -377,7 +443,7 @@ class GoldPortfolioCard extends HTMLElement {
       </div>
     `;
 
-    if (!hideEuroValues) {
+    if (!this._hideEuroValues) {
       statsHtml += `
         <div class="stat-item">
           <div class="stat-label">Aktueller Wert</div>
@@ -399,7 +465,10 @@ class GoldPortfolioCard extends HTMLElement {
     `;
 
     return `
-      <div class="title">${titleText}</div>
+      <div class="header">
+        <div class="title">${titleText}</div>
+        <button class="${toggleBtnClass}" id="toggle-euro">€ ${this._hideEuroValues ? 'zeigen' : 'ausblenden'}</button>
+      </div>
 
       <div class="stats-grid">
         ${statsHtml}

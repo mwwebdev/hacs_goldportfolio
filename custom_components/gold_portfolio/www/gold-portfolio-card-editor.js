@@ -14,7 +14,6 @@ class GoldPortfolioCardEditor extends HTMLElement {
   render() {
     const root = this.shadowRoot || this.attachShadow({ mode: "open" });
     const cardType = this.config.card_type || "portfolio-total";
-    const hideEuroValues = this.config.hide_euro_values || false;
 
     let html = `
       <style>
@@ -31,16 +30,6 @@ class GoldPortfolioCardEditor extends HTMLElement {
           padding: 8px;
           box-sizing: border-box;
         }
-        input[type="checkbox"] {
-          width: auto;
-          margin-right: 8px;
-        }
-        .checkbox-label {
-          display: flex;
-          align-items: center;
-          font-weight: normal;
-          cursor: pointer;
-        }
         .section {
           border: 1px solid var(--divider-color);
           padding: 12px;
@@ -54,12 +43,6 @@ class GoldPortfolioCardEditor extends HTMLElement {
           <option value="portfolio-total" ${cardType === "portfolio-total" ? "selected" : ""}>Gesamtes Portfolio</option>
           <option value="portfolio-entry" ${cardType === "portfolio-entry" ? "selected" : ""}>Portfolio Eintrag</option>
         </select>
-      </div>
-      <div>
-        <label class="checkbox-label">
-          <input type="checkbox" id="hide_euro_values" ${hideEuroValues ? "checked" : ""} />
-          Euro-Beträge ausblenden (nur % anzeigen)
-        </label>
       </div>
     `;
 
@@ -115,14 +98,6 @@ class GoldPortfolioCardEditor extends HTMLElement {
         this.config.card_type = e.target.value;
         this._fireConfigChanged();
         this.render();
-      });
-    }
-
-    const hideEuroCheckbox = root.querySelector("#hide_euro_values");
-    if (hideEuroCheckbox) {
-      hideEuroCheckbox.addEventListener("change", (e) => {
-        this.config.hide_euro_values = e.target.checked;
-        this._fireConfigChanged();
       });
     }
 
