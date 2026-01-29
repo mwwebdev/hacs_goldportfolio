@@ -71,16 +71,18 @@ class GoldPortfolioCard extends HTMLElement {
     const gainPercentEl = this._root.querySelector('[data-metric="gain-percent"]');
 
     const values = this._getCurrentValues();
-    
+
     if (totalGramsEl) totalGramsEl.textContent = (values.totalGrams || 'N/A') + ' g';
     if (currentValueEl) currentValueEl.textContent = (values.currentValue || 'N/A') + ' €';
     if (gainEurEl) gainEurEl.textContent = (values.gainEur || 'N/A') + ' €';
     if (gainPercentEl) gainPercentEl.textContent = (values.gainPercent || 'N/A') + '%';
 
-    // Update color classes
+    // Update color classes based on gain value
     const gainEurNum = parseFloat(values.gainEur);
-    const gainClass = gainEurNum >= 0 ? 'gain' : 'loss';
-    
+    const gainPercentNum = parseFloat(values.gainPercent);
+    // Use percent if EUR is not available (e.g. when hide_euro_values is true)
+    const gainClass = (!isNaN(gainEurNum) ? gainEurNum : gainPercentNum) >= 0 ? 'gain' : 'loss';
+
     if (gainEurEl) {
       gainEurEl.className = 'stat-value ' + gainClass;
     }
@@ -96,7 +98,16 @@ class GoldPortfolioCard extends HTMLElement {
   }
 
   setConfig(config) {
+    const configChanged = JSON.stringify(this.config) !== JSON.stringify(config);
     this.config = config;
+
+    // Re-render if config changed and we have hass data
+    if (configChanged && this._initialized && this.hassObj) {
+      this._initialized = false;
+      this._previousValues = this._getCurrentValues();
+      this.render();
+      this._initialized = true;
+    }
   }
 
   getCardSize() {
@@ -251,6 +262,7 @@ class GoldPortfolioCard extends HTMLElement {
     const currentValueSensor = this.config.current_value_entity;
     const gainEurSensor = this.config.gain_eur_entity;
     const gainPercentSensor = this.config.gain_percent_entity;
+    const hideEuroValues = this.config.hide_euro_values || false;
 
     // Check if all required entities are configured
     if (!totalGramsSensor || !currentValueSensor || !gainEurSensor || !gainPercentSensor) {
@@ -270,29 +282,40 @@ class GoldPortfolioCard extends HTMLElement {
     const gainEurNum = parseFloat(gainEur);
     const gainClass = gainEurNum >= 0 ? "gain" : "loss";
 
-    return `
-      <div class="title">Total Gold Portfolio</div>
-      
-      <div class="stats-grid">
-        <div class="stat-item">
-          <div class="stat-label">Gesamtmenge Gold</div>
-          <div class="stat-value" data-metric="total-grams">${totalGrams} g</div>
-        </div>
-        
+    // Build stats items based on hide_euro_values setting
+    let statsHtml = `
+      <div class="stat-item">
+        <div class="stat-label">Gesamtmenge Gold</div>
+        <div class="stat-value" data-metric="total-grams">${totalGrams} g</div>
+      </div>
+    `;
+
+    if (!hideEuroValues) {
+      statsHtml += `
         <div class="stat-item">
           <div class="stat-label">Aktueller Wert</div>
           <div class="stat-value" data-metric="current-value">${currentValue} €</div>
         </div>
-        
+
         <div class="stat-item">
           <div class="stat-label">Gewinn (EUR)</div>
           <div class="stat-value ${gainClass}" data-metric="gain-eur">${gainEur} €</div>
         </div>
-        
-        <div class="stat-item">
-          <div class="stat-label">Gewinn (%)</div>
-          <div class="stat-value ${gainClass}" data-metric="gain-percent">${gainPercent}%</div>
-        </div>
+      `;
+    }
+
+    statsHtml += `
+      <div class="stat-item">
+        <div class="stat-label">Gewinn (%)</div>
+        <div class="stat-value ${gainClass}" data-metric="gain-percent">${gainPercent}%</div>
+      </div>
+    `;
+
+    return `
+      <div class="title">Total Gold Portfolio</div>
+
+      <div class="stats-grid">
+        ${statsHtml}
       </div>
     `;
   }
@@ -300,7 +323,8 @@ class GoldPortfolioCard extends HTMLElement {
   _renderPortfolioEntry() {
     const entryId = this.config.entry_id;
     const entryName = this.config.entry_name;
-    
+    const hideEuroValues = this.config.hide_euro_values || false;
+
     // Build entity names based on entry_id (using Home Assistant naming convention)
     // These would be template sensors you create in your configuration
     const totalGramsSensor = this.config.entry_total_grams_entity || `sensor.portfolio_entry_${entryId}_grams`;
@@ -314,10 +338,10 @@ class GoldPortfolioCard extends HTMLElement {
     const gainPercent = this._getEntityState(gainPercentSensor);
 
     // Check if sensors exist
-    const sensorsFound = 
-      totalGrams !== "N/A" || 
-      currentValue !== "N/A" || 
-      gainEur !== "N/A" || 
+    const sensorsFound =
+      totalGrams !== "N/A" ||
+      currentValue !== "N/A" ||
+      gainEur !== "N/A" ||
       gainPercent !== "N/A";
 
     if (!sensorsFound) {
@@ -333,7 +357,8 @@ class GoldPortfolioCard extends HTMLElement {
             • ${gainEurSensor}<br>
             • ${gainPercentSensor}<br>
             <br>
-            Erstellen Sie diese als Template-Sensoren in Ihrer Home Assistant Konfiguration oder nutzen Sie die Service API.
+            <strong>Tipp:</strong> Die Sensoren werden erst nach dem Hinzufügen eines Eintrags und einem Reload der Integration erstellt.<br>
+            Gehen Sie zu Einstellungen → Geräte & Dienste → Gold Portfolio → "Neu laden".
           </div>
         </div>
       `;
@@ -344,29 +369,40 @@ class GoldPortfolioCard extends HTMLElement {
 
     const titleText = entryName ? `📊 ${entryName}` : `📊 Portfolio Eintrag`;
 
-    return `
-      <div class="title">${titleText}</div>
-      
-      <div class="stats-grid">
-        <div class="stat-item">
-          <div class="stat-label">Gesamtmenge Gold</div>
-          <div class="stat-value" data-metric="total-grams">${totalGrams} g</div>
-        </div>
-        
+    // Build stats items based on hide_euro_values setting
+    let statsHtml = `
+      <div class="stat-item">
+        <div class="stat-label">Menge</div>
+        <div class="stat-value" data-metric="total-grams">${totalGrams} g</div>
+      </div>
+    `;
+
+    if (!hideEuroValues) {
+      statsHtml += `
         <div class="stat-item">
           <div class="stat-label">Aktueller Wert</div>
           <div class="stat-value" data-metric="current-value">${currentValue} €</div>
         </div>
-        
+
         <div class="stat-item">
           <div class="stat-label">Gewinn (EUR)</div>
           <div class="stat-value ${gainClass}" data-metric="gain-eur">${gainEur} €</div>
         </div>
-        
-        <div class="stat-item">
-          <div class="stat-label">Gewinn (%)</div>
-          <div class="stat-value ${gainClass}" data-metric="gain-percent">${gainPercent}%</div>
-        </div>
+      `;
+    }
+
+    statsHtml += `
+      <div class="stat-item">
+        <div class="stat-label">Gewinn (%)</div>
+        <div class="stat-value ${gainClass}" data-metric="gain-percent">${gainPercent}%</div>
+      </div>
+    `;
+
+    return `
+      <div class="title">${titleText}</div>
+
+      <div class="stats-grid">
+        ${statsHtml}
       </div>
     `;
   }
