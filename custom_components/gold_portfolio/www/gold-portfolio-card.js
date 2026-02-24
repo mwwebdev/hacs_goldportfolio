@@ -1,3 +1,4 @@
+// gold-portfolio-card v1.1.0
 class GoldPortfolioCard extends HTMLElement {
   constructor() {
     super();
@@ -5,6 +6,33 @@ class GoldPortfolioCard extends HTMLElement {
     this._previousValues = {};
     this._initialized = false;
     this._hideEuroValues = false;
+  }
+
+  _getEntryData(entryId) {
+    // Primary: read from the single reliable entries-data sensor
+    const dataSensor = this.hassObj?.states["sensor.portfolio_entries_data"];
+    if (dataSensor?.attributes?.entries) {
+      const entry = dataSensor.attributes.entries[entryId];
+      if (entry) {
+        return {
+          totalGrams: entry.grams != null ? String(entry.grams) : null,
+          currentValue: entry.current_value != null ? String(entry.current_value) : null,
+          gainEur: entry.gain_eur != null ? String(entry.gain_eur) : null,
+          gainPercent: entry.gain_percent != null ? String(entry.gain_percent) : null,
+        };
+      }
+    }
+    // Fallback: try individual sensors
+    const totalGramsSensor = this.config.entry_total_grams_entity || `sensor.portfolio_entry_${entryId}_grams`;
+    const currentValueSensor = this.config.entry_current_value_entity || `sensor.portfolio_entry_${entryId}_current_value`;
+    const gainEurSensor = this.config.entry_gain_eur_entity || `sensor.portfolio_entry_${entryId}_gain_eur`;
+    const gainPercentSensor = this.config.entry_gain_percent_entity || `sensor.portfolio_entry_${entryId}_gain_percent`;
+    return {
+      totalGrams: this.hassObj?.states[totalGramsSensor]?.state ?? null,
+      currentValue: this.hassObj?.states[currentValueSensor]?.state ?? null,
+      gainEur: this.hassObj?.states[gainEurSensor]?.state ?? null,
+      gainPercent: this.hassObj?.states[gainPercentSensor]?.state ?? null,
+    };
   }
 
   set hass(hass) {
@@ -48,18 +76,7 @@ class GoldPortfolioCard extends HTMLElement {
         gainPercent: this.hassObj?.states[gain_percent_entity]?.state,
       };
     } else if (this.config.card_type === "portfolio-entry") {
-      const entryId = this.config.entry_id;
-      const totalGramsSensor = this.config.entry_total_grams_entity || `sensor.portfolio_entry_${entryId}_grams`;
-      const currentValueSensor = this.config.entry_current_value_entity || `sensor.portfolio_entry_${entryId}_current_value`;
-      const gainEurSensor = this.config.entry_gain_eur_entity || `sensor.portfolio_entry_${entryId}_gain_eur`;
-      const gainPercentSensor = this.config.entry_gain_percent_entity || `sensor.portfolio_entry_${entryId}_gain_percent`;
-
-      return {
-        totalGrams: this.hassObj?.states[totalGramsSensor]?.state,
-        currentValue: this.hassObj?.states[currentValueSensor]?.state,
-        gainEur: this.hassObj?.states[gainEurSensor]?.state,
-        gainPercent: this.hassObj?.states[gainPercentSensor]?.state,
-      };
+      return this._getEntryData(this.config.entry_id);
     }
     
     return {};
@@ -73,10 +90,11 @@ class GoldPortfolioCard extends HTMLElement {
 
     const values = this._getCurrentValues();
 
-    if (totalGramsEl) totalGramsEl.textContent = (values.totalGrams || 'N/A') + ' g';
-    if (currentValueEl) currentValueEl.textContent = (values.currentValue || 'N/A') + ' €';
-    if (gainEurEl) gainEurEl.textContent = (values.gainEur || 'N/A') + ' €';
-    if (gainPercentEl) gainPercentEl.textContent = (values.gainPercent || 'N/A') + '%';
+    const fmt = (v) => (v != null ? v : 'N/A');
+    if (totalGramsEl) totalGramsEl.textContent = fmt(values.totalGrams) + ' g';
+    if (currentValueEl) currentValueEl.textContent = fmt(values.currentValue) + ' €';
+    if (gainEurEl) gainEurEl.textContent = fmt(values.gainEur) + ' €';
+    if (gainPercentEl) gainPercentEl.textContent = fmt(values.gainPercent) + '%';
 
     // Update color classes based on gain value
     const gainEurNum = parseFloat(values.gainEur);
@@ -369,77 +387,38 @@ class GoldPortfolioCard extends HTMLElement {
     const entryId = this.config.entry_id;
     const entryName = this.config.entry_name;
 
-    // Build entity names based on entry_id (using Home Assistant naming convention)
-    const totalGramsSensor = this.config.entry_total_grams_entity || `sensor.portfolio_entry_${entryId}_grams`;
-    const currentValueSensor = this.config.entry_current_value_entity || `sensor.portfolio_entry_${entryId}_current_value`;
-    const gainEurSensor = this.config.entry_gain_eur_entity || `sensor.portfolio_entry_${entryId}_gain_eur`;
-    const gainPercentSensor = this.config.entry_gain_percent_entity || `sensor.portfolio_entry_${entryId}_gain_percent`;
+    const data = this._getEntryData(entryId);
 
-    // Debug: Log available sensors
-    console.log('[Gold Portfolio Card] Looking for sensors:', {
-      totalGramsSensor,
-      currentValueSensor,
-      gainEurSensor,
-      gainPercentSensor
-    });
+    const fmt = (v) => (v != null ? v : "N/A");
+    const hasData = data.totalGrams != null || data.currentValue != null || data.gainEur != null || data.gainPercent != null;
 
-    // Debug: Log all available portfolio-related sensors
-    if (this.hassObj?.states) {
-      const portfolioSensors = Object.keys(this.hassObj.states).filter(k => k.includes('portfolio'));
-      console.log('[Gold Portfolio Card] Available portfolio sensors:', portfolioSensors);
-    }
-
-    const totalGrams = this._getEntityState(totalGramsSensor);
-    const currentValue = this._getEntityState(currentValueSensor);
-    const gainEur = this._getEntityState(gainEurSensor);
-    const gainPercent = this._getEntityState(gainPercentSensor);
-
-    // Check if sensors exist
-    const sensorsFound =
-      totalGrams !== "N/A" ||
-      currentValue !== "N/A" ||
-      gainEur !== "N/A" ||
-      gainPercent !== "N/A";
-
-    if (!sensorsFound) {
-      // Find available portfolio entry sensors for suggestion
-      let availableSensors = [];
-      if (this.hassObj?.states) {
-        availableSensors = Object.keys(this.hassObj.states).filter(k => k.includes('portfolio_entry'));
-      }
-
+    if (!hasData) {
+      const dataSensorExists = !!this.hassObj?.states["sensor.portfolio_entries_data"];
       return `
         <div style="padding: 16px;">
+          <div style="font-weight:bold; margin-bottom:8px;">${entryName || "Portfolio Eintrag"}</div>
           <div style="color: var(--error-color, red); margin-bottom: 12px;">
-            ⚠️ Sensoren nicht gefunden!
+            ⚠️ Keine Daten für Eintrag ${entryId}
           </div>
           <div style="font-size: 12px; color: var(--secondary-text-color);">
-            Gesucht:<br>
-            • ${totalGramsSensor}<br>
-            • ${currentValueSensor}<br>
-            • ${gainEurSensor}<br>
-            • ${gainPercentSensor}<br>
-            <br>
-            ${availableSensors.length > 0 ? `<strong>Verfügbare Portfolio-Sensoren:</strong><br>${availableSensors.map(s => '• ' + s).join('<br>')}<br><br>` : ''}
-            <strong>Tipp:</strong> Die Sensoren werden erst nach einem Reload der Integration erstellt.<br>
-            Einstellungen → Geräte & Dienste → Gold Portfolio → ⋮ → Neu laden
+            ${dataSensorExists
+              ? "Der Datensensor existiert, aber diese Entry-ID wurde nicht gefunden.<br>Stimmt die ID in der Kartenkonfiguration?"
+              : "<strong>sensor.portfolio_entries_data</strong> nicht gefunden.<br>Integration neu laden:<br>Einstellungen → Geräte & Dienste → Gold Portfolio → ⋮ → Neu laden"
+            }
           </div>
         </div>
       `;
     }
 
-    const gainEurNum = parseFloat(gainEur);
-    const gainPercentNum = parseFloat(gainPercent);
-    const gainClass = (!isNaN(gainEurNum) ? gainEurNum : gainPercentNum) >= 0 ? "gain" : "loss";
-
+    const gainNum = parseFloat(data.gainEur ?? data.gainPercent);
+    const gainClass = !isNaN(gainNum) && gainNum >= 0 ? "gain" : "loss";
     const titleText = entryName || "Portfolio Eintrag";
     const toggleBtnClass = this._hideEuroValues ? "toggle-btn active" : "toggle-btn";
 
-    // Build stats items based on hide_euro_values setting
     let statsHtml = `
       <div class="stat-item">
         <div class="stat-label">Menge</div>
-        <div class="stat-value" data-metric="total-grams">${totalGrams} g</div>
+        <div class="stat-value" data-metric="total-grams">${fmt(data.totalGrams)} g</div>
       </div>
     `;
 
@@ -447,12 +426,11 @@ class GoldPortfolioCard extends HTMLElement {
       statsHtml += `
         <div class="stat-item">
           <div class="stat-label">Aktueller Wert</div>
-          <div class="stat-value" data-metric="current-value">${currentValue} €</div>
+          <div class="stat-value" data-metric="current-value">${fmt(data.currentValue)} €</div>
         </div>
-
         <div class="stat-item">
           <div class="stat-label">Gewinn (EUR)</div>
-          <div class="stat-value ${gainClass}" data-metric="gain-eur">${gainEur} €</div>
+          <div class="stat-value ${gainClass}" data-metric="gain-eur">${fmt(data.gainEur)} €</div>
         </div>
       `;
     }
@@ -460,7 +438,7 @@ class GoldPortfolioCard extends HTMLElement {
     statsHtml += `
       <div class="stat-item">
         <div class="stat-label">Gewinn (%)</div>
-        <div class="stat-value ${gainClass}" data-metric="gain-percent">${gainPercent}%</div>
+        <div class="stat-value ${gainClass}" data-metric="gain-percent">${fmt(data.gainPercent)}%</div>
       </div>
     `;
 
@@ -469,7 +447,6 @@ class GoldPortfolioCard extends HTMLElement {
         <div class="title">${titleText}</div>
         <button class="${toggleBtnClass}" id="toggle-euro">€ ${this._hideEuroValues ? 'zeigen' : 'ausblenden'}</button>
       </div>
-
       <div class="stats-grid">
         ${statsHtml}
       </div>

@@ -41,6 +41,7 @@ async def async_setup_entry(
         PortfolioTotalValueSensor(coordinator, config_entry, portfolio_manager),
         PortfolioTotalGainSensor(coordinator, config_entry, portfolio_manager),
         PortfolioTotalGainPercentSensor(coordinator, config_entry, portfolio_manager),
+        PortfolioEntriesDataSensor(coordinator, config_entry, portfolio_manager),
     ]
 
     # Add sensors for each portfolio entry
@@ -356,3 +357,60 @@ class PortfolioEntryGainPercentSensor(CoordinatorEntity, SensorEntity):
             if entry_value:
                 return entry_value.get("gain_percent")
         return None
+
+
+class PortfolioEntriesDataSensor(CoordinatorEntity, SensorEntity):
+    """Single sensor exposing all portfolio entry values as attributes.
+
+    This gives the Lovelace card a reliable, single entity_id to read from
+    instead of guessing per-entry entity IDs.
+    """
+
+    _attr_name = "Portfolio Entries Data"
+    _attr_icon = "mdi:database"
+
+    def __init__(
+        self,
+        coordinator: DataUpdateCoordinator,
+        config_entry: ConfigEntry,
+        portfolio_manager: PortfolioManager,
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{config_entry.entry_id}_entries_data"
+        self._config_entry = config_entry
+        self._portfolio_manager = portfolio_manager
+        self.entity_id = "sensor.portfolio_entries_data"
+
+    @property
+    def native_value(self) -> int:
+        """Return number of portfolio entries."""
+        return len(self._portfolio_manager.get_entries())
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        """Return all entry values indexed by entry_id."""
+        entries = {}
+        price_per_gram = 0.0
+        if self.coordinator.data:
+            price_per_gram = self.coordinator.data.get("price", 0) / TROY_OZ_TO_GRAM
+
+        for entry in self._portfolio_manager.get_entries():
+            entry_id = entry["id"]
+            entry_data = {
+                "grams": entry.get("amount_grams"),
+                "purchase_price_eur": entry.get("purchase_price_eur"),
+                "current_value": None,
+                "gain_eur": None,
+                "gain_percent": None,
+            }
+            if self.coordinator.data:
+                value = self._portfolio_manager.calculate_entry_value(entry_id, price_per_gram)
+                if value:
+                    entry_data["current_value"] = value.get("current_value_eur")
+                    entry_data["gain_eur"] = value.get("gain_eur")
+                    entry_data["gain_percent"] = value.get("gain_percent")
+            entries[entry_id] = entry_data
+
+        _LOGGER.debug("PortfolioEntriesDataSensor attributes: %s entry IDs", list(entries.keys()))
+        return {"entries": entries}
