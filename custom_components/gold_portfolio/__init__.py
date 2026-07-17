@@ -1,23 +1,45 @@
 """Gold Portfolio Tracker Integration."""
-import asyncio
 import logging
 from datetime import timedelta
+from pathlib import Path
 
+from homeassistant.components import frontend
+from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .api import GoldAPIClient
-from .const import DOMAIN, UPDATE_INTERVAL_DEFAULT
+from .const import (
+    CARD_FILENAME,
+    CARD_URL_PATH,
+    DOMAIN,
+    UPDATE_INTERVAL_DEFAULT,
+    VERSION,
+)
+from .portfolio import PortfolioManager
 from .services import async_setup_services
-
-# Pre-load sensor module to avoid blocking import warning
-from . import sensor as _sensor_module  # noqa: F401
 
 _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS: list[Platform] = [Platform.SENSOR]
+
+
+async def _async_register_frontend(hass: HomeAssistant) -> None:
+    """Serve the dashboard card and load it automatically on all dashboards."""
+    if hass.data[DOMAIN].get("frontend_registered"):
+        return
+
+    card_path = Path(__file__).parent / "www" / CARD_FILENAME
+    await hass.http.async_register_static_paths(
+        [StaticPathConfig(CARD_URL_PATH, str(card_path.parent), cache_headers=False)]
+    )
+    if "frontend" in hass.config.components:
+        frontend.add_extra_js_url(hass, f"{CARD_URL_PATH}/{CARD_FILENAME}?v={VERSION}")
+    hass.data[DOMAIN]["frontend_registered"] = True
+    _LOGGER.debug("Registered gold-portfolio-card at %s/%s", CARD_URL_PATH, CARD_FILENAME)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -27,31 +49,36 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     api_key = entry.data.get("api_key")
     update_interval = entry.options.get("update_interval", UPDATE_INTERVAL_DEFAULT)
 
-    api_client = GoldAPIClient(api_key)
+    api_client = GoldAPIClient(api_key, session=async_get_clientsession(hass))
 
     async def async_update_data():
         """Fetch data from Gold API."""
         try:
             return await api_client.get_gold_price()
         except Exception as err:
-            _LOGGER.error("Error updating gold price: %s", err)
-            raise UpdateFailed(f"Error communicating with Gold API: {err}")
+            raise UpdateFailed(f"Error communicating with Gold API: {err}") from err
 
     coordinator = DataUpdateCoordinator(
         hass,
         _LOGGER,
         name=DOMAIN,
         update_method=async_update_data,
-        update_interval=timedelta(hours=24 // update_interval),
+        update_interval=timedelta(hours=24 / update_interval),
     )
+
+    portfolio_manager = PortfolioManager(hass)
+    await portfolio_manager.async_load()
 
     await coordinator.async_config_entry_first_refresh()
 
     hass.data[DOMAIN][entry.entry_id] = {
         "coordinator": coordinator,
         "api_client": api_client,
+        "portfolio_manager": portfolio_manager,
         "entry": entry,
     }
+
+    await _async_register_frontend(hass)
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 

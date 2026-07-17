@@ -1,203 +1,98 @@
 # Gold Portfolio Tracker
 
-Eine Home Assistant Integration zur Verfolgung deines Gold Portfolios mit automatischer Preisabfrage von goldapi.io.
+Eine Home Assistant Integration zur Verfolgung deines Gold-Portfolios mit automatischer Preisabfrage von goldapi.io — inklusive interaktiver Dashboard-Karte, mit der du Käufe direkt in der Oberfläche verwaltest.
 
 ## Features
 
-- 🏆 Automatische Goldpreisabfrage mehrmals täglich
-- 📊 Portfolio-Management mit mehreren Einträgen
-- 💰 Echtzeit-Bewertung und Gewinn-/Verlust-Berechnung
-- 🎨 Benutzerdefinierte Dashboard-Cards (Widgets)
+- 🏆 Automatische Goldpreisabfrage (konfigurierbar, 1–24× täglich)
+- 🖱️ **Interaktive Dashboard-Karte**: Käufe hinzufügen, bearbeiten und löschen direkt in der Karte — keine Services, keine Entity-IDs, kein YAML nötig
+- 🪄 **Zero-Config**: Die Karte findet die Integration automatisch und wird automatisch geladen (keine Lovelace-Ressource, kein Kopieren nach `/config/www`)
+- 📈 Historische Preisabfrage: Kaufpreis leer lassen → der Goldpreis zum Kaufdatum wird automatisch ermittelt
+- 🙈 Privatsphäre-Modus: Ein Klick blendet alle Euro-Beträge aus
+- 💰 Echtzeit-Bewertung mit Gewinn-/Verlust-Berechnung (gesamt und pro Kauf)
+- 📊 Sensoren für alle Werte — nutzbar in Verlaufsgrafiken, Automationen usw.
 - 🔐 Sichere Token-Speicherung
-- 📈 Historische Preisabfrage für automatische Preiseingabe
 
 ## Installation (HACS)
 
-1. Öffne HACS → Integrationen
-2. Klicke auf die Drei-Punkte und wähle "Benutzerdefiniertes Repository"
-3. Gib folgende URL ein: `https://github.com/user/ha_goldportfolio`
-4. Kategorie: Integration
-5. Klicke auf "Erstellen"
-6. Jetzt sollte "Gold Portfolio Tracker" in HACS verfügbar sein
-7. Installiere die Integration und starte Home Assistant neu
+1. Öffne HACS
+2. Drei-Punkte-Menü → „Benutzerdefinierte Repositories"
+3. URL: `https://github.com/mwwebdev/hacs_goldportfolio`, Kategorie: Integration
+4. „Gold Portfolio Tracker" installieren und Home Assistant neu starten
+
+Benötigt Home Assistant **2024.6.0** oder neuer.
 
 ## Setup
 
-### 1. Integration hinzufügen
+1. Einstellungen → Geräte & Dienste → **Integration hinzufügen**
+2. „Gold Portfolio Tracker" wählen
+3. goldapi.io API-Schlüssel eingeben (kostenlos auf https://www.goldapi.io/)
 
-1. Gehe zu Einstellungen → Geräte und Dienste
-2. Klicke auf "+ Neue Automatisierung erstellen"
-3. Wähle "Gold Portfolio Tracker"
-4. Gib deinen goldapi.io API-Schlüssel ein
-5. Speichern
+## Dashboard-Karte
 
-### 2. Optionen konfigurieren
-
-Nach dem Erstellen der Integration:
-1. Gehe zu Einstellungen → Geräte und Dienste
-2. Wähle "Gold Portfolio Tracker"
-3. Klicke auf "Optionen"
-4. Stelle die Aktualisierungshäufigkeit ein (1-24 mal pro Tag)
-
-### 3. Portfolio-Einträge hinzufügen
-
-Verwende die bereitgestellten Services:
-
-**Service: `gold_portfolio.add_portfolio_entry`**
+Karte zum Dashboard hinzufügen — mehr Konfiguration ist nicht nötig:
 
 ```yaml
-service: gold_portfolio.add_portfolio_entry
-data:
-  entry_id: config_entry_id  # Deine Integration ID
-  purchase_date: "2024-01-15"
-  amount_grams: 100
-  purchase_price_eur: 5800  # Optional
-  purchase_price_per_gram: 58  # Optional (statt purchase_price_eur)
+type: custom:gold-portfolio-card
+```
+
+Die Karte ist auch im Karten-Auswahldialog („Gold Portfolio Card") verfügbar und bringt einen visuellen Editor mit.
+
+**In der Karte kannst du:**
+- Käufe über „+ Kauf hinzufügen" erfassen (Name, Datum, Menge, optional Preis)
+- Käufe über das Stift-Symbol bearbeiten und über das Papierkorb-Symbol löschen
+- Mit dem Augen-Symbol alle Euro-Beträge ausblenden
+
+Optionale Einstellungen:
+
+```yaml
+type: custom:gold-portfolio-card
+title: Mein Gold          # eigener Titel
+show_entries: false       # nur Gesamtübersicht, keine Einzelkäufe
 ```
 
 ## Sensoren
 
-Die Integration erstellt automatisch folgende Sensoren:
+| Sensor | Beschreibung |
+|---|---|
+| `sensor.gold_price` | Aktueller Goldpreis (EUR/oz, Attribut `price_per_gram`) |
+| `sensor.portfolio_total_grams` | Gesamtmenge in Gramm |
+| `sensor.portfolio_current_value` | Aktueller Portfoliowert (Attribute enthalten alle Einträge) |
+| `sensor.portfolio_total_gain_eur` | Gesamtgewinn in EUR |
+| `sensor.portfolio_total_gain` | Gesamtgewinn in Prozent |
+| `sensor.gold_<name>_*` | Menge, Wert, Gewinn pro Kauf |
 
-- `sensor.gold_price` - Aktueller Goldpreis in EUR
-- `sensor.portfolio_total_grams` - Gesamtmenge Gold in Gramm
-- `sensor.portfolio_current_value` - Aktueller Portfoliowert in EUR
-- `sensor.portfolio_total_gain_eur` - Gesamtgewinn in EUR
-- `sensor.portfolio_total_gain` - Gesamtgewinn in Prozent
-
-## Widgets
-
-### Widget 1: Gesamtes Portfolio
-
-```yaml
-type: custom:gold-portfolio-card
-card_type: portfolio-total
-total_grams_entity: sensor.portfolio_total_grams
-current_value_entity: sensor.portfolio_current_value
-gain_eur_entity: sensor.portfolio_total_gain_eur
-gain_percent_entity: sensor.portfolio_total_gain
-```
-
-### Widget 2: Einzelner Eintrag
-
-```yaml
-type: custom:gold-portfolio-card
-card_type: portfolio-entry
-entry_id: "1768210120875"  # Die Portfolio-Entry ID
-entry_name: "Schmuck"  # Optional: Name zur Kategorisierung
-# Die Sensoren werden automatisch basierend auf der Entry-ID gesucht:
-# sensor.portfolio_entry_1768210120875_grams
-# sensor.portfolio_entry_1768210120875_current_value
-# sensor.portfolio_entry_1768210120875_gain_eur
-# sensor.portfolio_entry_1768210120875_gain_percent
-```
-
-Alternativ können Sie auch manuelle Entity-IDs angeben:
-
-```yaml
-type: custom:gold-portfolio-card
-card_type: portfolio-entry
-entry_id: "1768210120875"
-entry_name: "Schmuck"
-entry_total_grams_entity: sensor.portfolio_entry_1768210120875_grams
-entry_current_value_entity: sensor.portfolio_entry_1768210120875_current_value
-entry_gain_eur_entity: sensor.portfolio_entry_1768210120875_gain_eur
-entry_gain_percent_entity: sensor.portfolio_entry_1768210120875_gain_percent
-```
+Neue Käufe erscheinen **sofort** als Sensoren — ein Neustart oder Reload ist nicht mehr nötig.
 
 ## Services
 
-### add_portfolio_entry
-Portfolio-Eintrag hinzufügen
+Alle Funktionen der Karte stehen auch als Services zur Verfügung (z.B. für Automationen). `entry_id` ist optional, solange nur eine Instanz der Integration existiert.
 
 ```yaml
 service: gold_portfolio.add_portfolio_entry
 data:
-  entry_id: config_entry_id
-  purchase_date: "YYYY-MM-DD"
-  amount_grams: number
-  purchase_price_eur: number (optional)
-  purchase_price_per_gram: number (optional)
+  name: "Schmuck"
+  purchase_date: "2024-01-15"
+  amount_grams: 100
+  # purchase_price_eur weglassen -> historischer Preis wird automatisch geholt
 ```
 
-### remove_portfolio_entry
-Portfolio-Eintrag entfernen
+Weitere Services: `update_portfolio_entry`, `remove_portfolio_entry`, `get_portfolio_entries` (mit Antwort), `get_historical_price` (mit Antwort).
 
-```yaml
-service: gold_portfolio.remove_portfolio_entry
-data:
-  entry_id: config_entry_id
-  portfolio_entry_id: entry_id_to_remove
-```
+## Upgrade von v1.x
 
-### update_portfolio_entry
-Portfolio-Eintrag aktualisieren
-
-```yaml
-service: gold_portfolio.update_portfolio_entry
-data:
-  entry_id: config_entry_id
-  portfolio_entry_id: entry_id_to_update
-  purchase_date: "YYYY-MM-DD" (optional)
-  amount_grams: number (optional)
-  purchase_price_eur: number (optional)
-```
-
-### get_portfolio_entries
-Alle Portfolio-Einträge abrufen
-
-```yaml
-service: gold_portfolio.get_portfolio_entries
-data:
-  entry_id: config_entry_id
-```
-
-### get_historical_price
-Historischen Goldpreis für ein bestimmtes Datum abrufen
-
-```yaml
-service: gold_portfolio.get_historical_price
-data:
-  entry_id: config_entry_id
-  date: "YYYY-MM-DD"
-```
+- Bestehende Portfolio-Einträge werden automatisch migriert.
+- Verwaiste, dauerhaft „nicht verfügbare" Sensoren aus v1.x werden beim Start automatisch entfernt.
+- Die alten Karten-Konfigurationen (`card_type: portfolio-total` / `portfolio-entry` mit Entity-IDs) werden durch die neue Zero-Config-Karte ersetzt: Ersetze die alten Karten einfach durch `type: custom:gold-portfolio-card`.
+- Falls die Karten-Datei früher manuell nach `/config/www` kopiert wurde: Datei und die zugehörige Lovelace-Ressource können gelöscht werden, die Karte wird jetzt von der Integration selbst bereitgestellt.
 
 ## API Key
 
-Um einen kostenlosen API-Schlüssel zu erhalten:
-
-1. Besuche https://www.goldapi.io/
-2. Registriere dich oder melde dich an
-3. Generiere einen neuen API-Schlüssel
-4. Verwende diesen Schlüssel in der Integration
-
-## ⚠️ Sicherheitshinweis
-
-**Wichtig:** Committe niemals deinen echten API-Key in Git! Der API-Key wird sicher in Home Assistant gespeichert und sollte nur dort eingegeben werden.
-
-Falls du versehentlich einen API-Key committet hast:
-1. Widerrufe den Key sofort auf https://www.goldapi.io/
-2. Generiere einen neuen Key
-3. Verwende den neuen Key in Home Assistant
-
-## Häufig gestellte Fragen
-
-**F: Wie oft wird der Goldpreis aktualisiert?**
-A: Das ist in den Optionen konfigurierbar. Standardmäßig 2x pro Tag (alle 12 Stunden).
-
-**F: Kann ich historische Preise abrufen?**
-A: Ja, mit dem Service `get_historical_price` kannst du Preise für ein bestimmtes Datum abrufen.
-
-**F: Sind meine Daten sicher?**
-A: Ja, dein API-Schlüssel wird nur lokal gespeichert und wird nie an Dritte übertragen.
-
-**F: Ich bekomme "invalid_api_key" Fehler?**
-A: Schaue dir die [API-Key Troubleshooting Anleitung](docs/TROUBLESHOOTING_API_KEY.md) an.
+Kostenlosen API-Schlüssel erstellen: https://www.goldapi.io/ → registrieren → Key generieren. Der Key wird ausschließlich lokal in Home Assistant gespeichert.
 
 ## Unterstützung
 
-Für Probleme oder Fragen bitte ein Issue auf GitHub erstellen:
-https://github.com/user/ha_goldportfolio/issues
+Fragen oder Probleme: https://github.com/mwwebdev/hacs_goldportfolio/issues
 
 ## Lizenz
 

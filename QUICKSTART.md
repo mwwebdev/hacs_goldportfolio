@@ -1,165 +1,99 @@
 # Quick Start Guide - Gold Portfolio Tracker
 
-## 🚀 Schnellstart (5 Minuten)
+## 🚀 Schnellstart (3 Minuten)
 
 ### Schritt 1: Installation via HACS ⚡
 
 1. **HACS öffnen**
-   - Im Home Assistant Menü auf "HACS" klicken
-
-2. **Benutzerdefiniertes Repository hinzufügen**
-   - Klick auf ⋮ (Menü) oben rechts
-   - "Benutzerdefiniertes Repository" wählen
-   - URL eingeben: `https://github.com/user/ha_goldportfolio`
-   - Kategorie: Integration
-   - "Erstellen" klicken
-
-3. **Integration installieren**
-   - "Gold Portfolio Tracker" finden
-   - "Installation" klicken
-   - Home Assistant neu starten
+2. ⋮ (Menü) → **Benutzerdefinierte Repositories**
+3. URL: `https://github.com/mwwebdev/hacs_goldportfolio`, Kategorie: Integration
+4. "Gold Portfolio Tracker" installieren und **Home Assistant neu starten**
 
 ### Schritt 2: API Key besorgen 🔑
 
-1. Besuche: https://www.goldapi.io/
-2. Registriere dich kostenlos
-3. Generiere einen API Key
-4. Speichere ihn für den nächsten Schritt
+1. https://www.goldapi.io/ besuchen
+2. Kostenlos registrieren und API Key generieren
 
-### Schritt 3: Integration konfigurieren ⚙️
+### Schritt 3: Integration einrichten ⚙️
 
-1. **Einstellungen** → **Geräte und Dienste**
-2. **"+ Neue Schnittstelle"** oder **"+ Erstellen"**
-3. "Gold Portfolio Tracker" suchen und auswählen
-4. API Key eingeben (von Schritt 2)
-5. Name eingeben (z.B. "Mein Gold Portfolio")
-6. **Speichern**
+1. **Einstellungen** → **Geräte & Dienste** → **Integration hinzufügen**
+2. "Gold Portfolio Tracker" auswählen
+3. API Key eingeben → **Speichern**
 
-### Schritt 4: First Portfolio Entry 📊
+### Schritt 4: Karte zum Dashboard hinzufügen 📈
 
-1. **Einstellungen** → **Developer Tools** → **Services**
-2. Service wählen: "gold_portfolio: Portfolio-Eintrag hinzufügen"
-3. Folgende Daten eingeben:
-   ```
-   entry_id: (aus der Integration Config)
-   purchase_date: 2024-01-15
-   amount_grams: 100
-   purchase_price_eur: 5800
-   ```
-4. "Aufrufen" klicken
+1. **Dashboard bearbeiten** → **Karte hinzufügen**
+2. "Gold Portfolio Card" auswählen (oder YAML: `type: custom:gold-portfolio-card`)
+3. **Speichern** — mehr Konfiguration ist nicht nötig
 
-### Schritt 5: Dashboard erstellen 📈
+### Schritt 5: Käufe erfassen 🪙
 
-1. **Übersicht** → **Dashboard bearbeiten** → **Karte hinzufügen**
-2. **Bearbeiten** (YAML) wählen
-3. Folgenden Code einfügen:
+Direkt in der Karte auf **„+ Kauf hinzufügen"** klicken:
 
-```yaml
-type: custom:gold-portfolio-card
-type: portfolio-total
-total_grams_entity: sensor.portfolio_total_grams
-current_value_entity: sensor.portfolio_current_value
-gain_eur_entity: sensor.portfolio_total_gain_eur
-gain_percent_entity: sensor.portfolio_total_gain_percent
-```
+- **Bezeichnung** (z.B. „Schmuck", „Krügerrand")
+- **Kaufdatum**
+- **Menge** in Gramm
+- **Kaufpreis** — oder leer lassen, dann wird der historische Goldpreis zum Kaufdatum automatisch ermittelt
 
-4. **Speichern**
+Bearbeiten und Löschen geht ebenfalls direkt in der Karte (Stift- / Papierkorb-Symbol).
 
-✅ **Fertig!** Dein Gold Portfolio ist jetzt aktiv und wird regelmäßig aktualisiert.
+✅ **Fertig!**
 
 ---
 
 ## 🆘 Häufige Probleme
 
-### Problem: "Integration wird nicht angezeigt"
-**Lösung:**
-- Stelle sicher, dass HACS installiert ist
-- Home Assistant komplett neustarten (nicht nur neu laden)
-- Cache des Browsers löschen
+### „Integration wird nicht angezeigt"
+- HACS installiert? Home Assistant komplett neu gestartet?
+- Browser-Cache leeren
 
-### Problem: "API Key ungültig"
-**Lösung:**
-- Überprüfe den API Key auf Tippfehler
-- Stelle sicher, dass du bei goldapi.io registriert bist
-- Versuche, einen neuen API Key zu generieren
-- **[Detailliertes Debugging Guide](docs/TROUBLESHOOTING_API_KEY.md)** für weitere Hilfe
+### „API Key ungültig"
+- Key auf Tippfehler prüfen, ggf. neuen Key auf goldapi.io generieren
+- [Detailliertes Debugging Guide](docs/TROUBLESHOOTING_API_KEY.md)
 
-### Problem: "Sensoren zeigen 'unknown' an"
-**Lösung:**
-- Warte 1-2 Minuten, bis die erste Abfrage erfolgt
-- Überprüfe die Logs: **Einstellungen** → **System** → **Protokolle**
-- Überprüfe deine Internetverbindung
+### „Karte zeigt: Integration nicht gefunden"
+- Integration unter Einstellungen → Geräte & Dienste eingerichtet?
+- Seite neu laden (Strg+F5)
 
-### Problem: "Portfolio-Eintrag wird nicht gespeichert"
-**Lösung:**
-- Überprüfe die Integration ID (correct format!)
-- Stelle sicher, dass das Datum im Format YYYY-MM-DD eingegeben ist
-- Schaue in die Logs auf Error-Meldungen
+### Upgrade von v1.x
+- Alte Karten-Konfigurationen durch `type: custom:gold-portfolio-card` ersetzen
+- Falls die Karten-JS-Datei früher manuell nach `/config/www` kopiert wurde: Datei löschen und die Lovelace-Ressource entfernen (Einstellungen → Dashboards → Ressourcen), sonst überdeckt die alte Karte die neue
+- Bestehende Portfolio-Einträge werden automatisch übernommen
 
 ---
 
-## 📚 Weitere Ressourcen
+## 💡 Tipps
 
-- **Vollständige Dokumentation**: [docs/DOCUMENTATION.md](../docs/DOCUMENTATION.md)
-- **Konfigurationsbeispiele**: [examples/CONFIGURATION_EXAMPLES.md](../examples/CONFIGURATION_EXAMPLES.md)
-- **Dashboard Beispiel**: [examples/dashboard.yaml](../examples/dashboard.yaml)
-- **Gold API Dokumentation**: https://www.goldapi.io/api
-
----
-
-## 💡 Tipps und Tricks
-
-### 💰 Mehrere Goldkäufe verwalten
-Du kannst beliebig viele Portfolio-Einträge hinzufügen. Jeder wird einzeln verwaltet:
-
-```yaml
-# Kauf 1: 100g im Jan 2024
-amount_grams: 100
-purchase_price_eur: 5800
-
-# Kauf 2: 50g im Dez 2023 (vorher gekauft)
-amount_grams: 50
-purchase_price_eur: 2800
-```
-
-### 📱 Mobile Ansicht optimieren
-Widgets sind responsive und funktionieren auf dem Handy! Ändere einfach die Reihenfolge oder Größe im Dashboard-Editor.
-
-### 🔔 Benachrichtigungen aktivieren
-Erstelle eine Automatisierung für Gewinn-Meldungen:
+### 🔔 Benachrichtigung bei Gewinn
 
 ```yaml
 automation:
   - alias: "Gold Gewinn Alert"
     trigger:
-      entity_id: sensor.portfolio_total_gain_percent
+      entity_id: sensor.portfolio_total_gain
       platform: numeric_state
       above: 15
     action:
       service: notify.notify
       data:
-        message: "🎉 Dein Gold Portfolio hat {{states('sensor.portfolio_total_gain_percent')}}% Gewinn!"
+        message: "🎉 Dein Gold Portfolio hat {{ states('sensor.portfolio_total_gain') }}% Gewinn!"
 ```
 
----
+### 📊 Wertverlauf als Grafik
 
-## 🆕 Was gibt es Neues?
-
-Die neuste Version (1.0.0) bietet:
-- ✅ Vollständiges Portfolio-Management
-- ✅ Real-time Goldpreis-Abfrage
-- ✅ Benutzerfreundliche Custom Cards
-- ✅ Service-basierte API für Automatisierungen
-- ✅ Lokale Datenspeicherung (keine Cloud!)
+```yaml
+type: history-graph
+title: Portfoliowert
+hours_to_show: 720
+entities:
+  - sensor.portfolio_current_value
+```
 
 ---
 
 ## 🤝 Support
 
-Hast du Fragen oder Probleme?
-
 1. **Logs überprüfen**: Einstellungen → System → Protokolle → "gold_portfolio"
-2. **GitHub Issues**: https://github.com/user/ha_goldportfolio/issues
-3. **Diskussionen**: https://github.com/user/ha_goldportfolio/discussions
+2. **GitHub Issues**: https://github.com/mwwebdev/hacs_goldportfolio/issues
 
 Viel Erfolg mit deinem Gold Portfolio! 🏆

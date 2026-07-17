@@ -2,7 +2,7 @@
 
 DOMAIN = "gold_portfolio"
 NAME = "Gold Portfolio Tracker"
-VERSION = "1.0.0"
+VERSION = "2.0.0"
 
 # API
 GOLD_API_BASE_URL = "https://www.goldapi.io/api"
@@ -17,6 +17,18 @@ UPDATE_INTERVAL_MAX = 24
 # Configuration
 CONF_API_KEY = "api_key"
 CONF_UPDATE_INTERVAL = "update_interval"
+
+# Storage
+STORAGE_VERSION = 1
+STORAGE_KEY = f"{DOMAIN}_portfolio"
+LEGACY_STORAGE_FILE = "gold_portfolio_entries.json"
+
+# Frontend card
+CARD_URL_PATH = f"/{DOMAIN}-files"
+CARD_FILENAME = "gold-portfolio-card.js"
+
+# Dispatcher signal, formatted with the config entry id
+SIGNAL_PORTFOLIO_UPDATED = f"{DOMAIN}_portfolio_updated_{{}}"
 
 # Attributes
 ATTR_AMOUNT_GRAMS = "amount_grams"
